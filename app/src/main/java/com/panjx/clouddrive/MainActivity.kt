@@ -7,11 +7,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
 import com.panjx.clouddrive.feature.splash.SplashRoute
+import com.panjx.clouddrive.ui.MyApp
 import com.panjx.clouddrive.ui.theme.CloudDriveTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,14 +19,17 @@ class MainActivity : ComponentActivity() {
         // 设置沉浸式状态栏
         enableEdgeToEdge()
 
-        //
 
         setContent {
+            val navController = rememberNavController()
             CloudDriveTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SplashRoute(
+                    MyApp(
+                        navController = navController,
                         modifier = Modifier.padding(innerPadding)
                     )
+
+
                 }
             }
         }

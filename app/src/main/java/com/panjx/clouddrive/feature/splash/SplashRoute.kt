@@ -1,13 +1,14 @@
 package com.panjx.clouddrive.feature.splash
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,14 +23,21 @@ import com.panjx.clouddrive.ui.theme.CloudDriveTheme
 import com.panjx.clouddrive.util.SuperDateUtil
 
 @Composable
-fun SplashRoute(modifier: Modifier) {
-    SplashScreen(SuperDateUtil.currentYear())
+fun SplashRoute(
+    modifier: Modifier? = Modifier,
+    toMain: () -> Unit
+) {
+    SplashScreen(SuperDateUtil.currentYear(),
+        modifier,
+        toMain
+    )
 }
 
 @Composable
 fun SplashScreen(
     year: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier? = Modifier,
+    toMain: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -54,6 +62,10 @@ fun SplashScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .offset(y = (-80).dp)
+                .clickable {
+                    Log.d("SplashScreen", "跳转主页面")
+                    toMain()
+                }
         )
 
     }
