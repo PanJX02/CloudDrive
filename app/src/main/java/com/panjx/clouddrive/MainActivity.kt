@@ -17,7 +17,11 @@ import com.panjx.clouddrive.ui.theme.CloudDriveTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 设置沉浸式状态栏
         enableEdgeToEdge()
+
+        //
+
         setContent {
             CloudDriveTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
