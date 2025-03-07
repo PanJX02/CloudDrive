@@ -12,12 +12,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 import com.panjx.clouddrive.R
 import com.panjx.clouddrive.ui.theme.CloudDriveTheme
 import com.panjx.clouddrive.util.SuperDateUtil
@@ -25,19 +31,33 @@ import com.panjx.clouddrive.util.SuperDateUtil
 @Composable
 fun SplashRoute(
     modifier: Modifier? = Modifier,
-    toMain: () -> Unit
+    toMain: () -> Unit,
+    viewModel: SplashViewModel = viewModel()
 ) {
+    // 获取倒计时
+    val timeLeft by viewModel.timeLeft.collectAsStateWithLifecycle()
+    // 跳转主页面
+    val navigateToMain by viewModel.navigateToMain.collectAsState()
+
     SplashScreen(SuperDateUtil.currentYear(),
         modifier,
-        toMain
+        timeLeft,
+        viewModel::onSkipClick
     )
+
+    if (navigateToMain) {
+        LaunchedEffect(true) {
+            toMain()
+        }
+    }
 }
 
 @Composable
 fun SplashScreen(
     year: Int,
     modifier: Modifier? = Modifier,
-    toMain: () -> Unit = {}
+    timeLeft: Long=0,
+    onSkipClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -64,10 +84,17 @@ fun SplashScreen(
                 .offset(y = (-80).dp)
                 .clickable {
                     Log.d("SplashScreen", "跳转主页面")
-                    toMain()
+                    onSkipClick()
                 }
         )
 
+        Text(
+            "倒计时：$timeLeft",
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(y = 40.dp)
+                .offset(x = (-40).dp)
+        )
     }
 }
 

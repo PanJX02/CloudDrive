@@ -23,14 +23,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
             CloudDriveTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MyApp(
-                        navController = navController,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-
-
-                }
+                MyApp(
+                    navController = navController,
+                )
             }
         }
     }
