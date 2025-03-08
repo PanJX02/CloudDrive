@@ -16,9 +16,9 @@ object FilePreviewParameterData {
         isDir = false
     )
 
-    val fileList = listOf(
+    val FILES = listOf(
         // 图像类文件
-
+        FILE,
         File(
             id = "2",
             name = "diagram",
