@@ -21,7 +21,6 @@ import com.panjx.clouddrive.core.design.component.BottomBar
 import com.panjx.clouddrive.core.design.theme.Gray20
 import com.panjx.clouddrive.core.design.theme.Gray40
 import com.panjx.clouddrive.feature.fileRoute.FileRoute
-import com.panjx.clouddrive.feature.fileRoute.FileTopBar
 import com.panjx.clouddrive.feature.meRoute.MeRoute
 import com.panjx.clouddrive.feature.transfersRoute.TransfersRoute
 
