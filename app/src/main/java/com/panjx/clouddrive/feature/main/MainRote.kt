@@ -1,6 +1,7 @@
 package com.panjx.clouddrive.feature.main
 
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
@@ -34,6 +35,7 @@ fun MainRote(
 
 @Composable
 fun MainScreen(finishPage: () -> Unit = {}) {
+    Log.d("Composable", "MainScreen")
     val navController = rememberNavController()
 
     // 定义底部导航项对应路由

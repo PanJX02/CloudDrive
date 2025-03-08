@@ -1,6 +1,7 @@
 package com.panjx.clouddrive.feature.file.component
 
 import android.graphics.drawable.Icon
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,8 +37,11 @@ import com.panjx.clouddrive.util.DateTimeUtils
 
 @Composable
 fun ItemFile(
-    data: File, modifier: Modifier = Modifier
+    data: File,
+    modifier: Modifier = Modifier,
+    onSelectChange: (Boolean) -> Unit // 新增回调
 ) {
+    Log.d("Composable", "ItemFile")
     Row(
         modifier = Modifier.fillMaxWidth()
             .padding(horizontal = 15.dp)
@@ -76,26 +80,41 @@ fun ItemFile(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        var iconType:ImageVector by remember { mutableStateOf(Icons.Filled.RadioButtonUnchecked)}
-        if (data.isSelected){
-            iconType = Icons.Filled.RadioButtonChecked
+        // 动态切换选中图标
+        val icon = if (data.isSelected.value) {
+            Icons.Filled.RadioButtonChecked
+        } else {
+            Icons.Filled.RadioButtonUnchecked
         }
-        else{
-            iconType= Icons.Filled.RadioButtonUnchecked
-        }
+
         Icon(
-            imageVector = iconType,
+            imageVector = icon,
             contentDescription = "Select",
+            tint = if (data.isSelected.value) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
             modifier = Modifier
-                .size(15.dp)
+                .size(20.dp)
                 .clickable {
-                    data.isSelected = !data.isSelected
+                    val newState = !data.isSelected.value
+                    data.isSelected.value = newState // 更新自身状态
+                    onSelectChange(newState) // 通知父组件
                 }
         )
+
     }
 }
 @Preview(showBackground = true)
 @Composable
 fun ItemFilePreview() {
-    ItemFile(data = FILE)
+    ItemFile(
+        data = FILE,
+        onSelectChange = { isSelected ->
+            // 可在此处处理选中逻辑（如更新列表状态）
+            FILE.isSelected.value = isSelected
+        }
+    )
+
 }

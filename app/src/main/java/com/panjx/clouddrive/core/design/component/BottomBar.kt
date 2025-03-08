@@ -1,5 +1,6 @@
 package com.panjx.clouddrive.core.design.component
 
+import android.util.Log
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -17,6 +18,7 @@ fun BottomBar(
     navController: NavController,
     items: List<Screen>
 ) {
+    Log.d("Composable", "BottomBar")
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 

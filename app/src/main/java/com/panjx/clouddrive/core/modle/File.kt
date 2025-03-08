@@ -1,5 +1,8 @@
 package com.panjx.clouddrive.core.modle
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+
 /**
  * 文件/目录实体类
  *
@@ -26,5 +29,5 @@ data class File(
     val createTime: Long,
     val updateTime: Long,
     val isDir: Boolean,
-    var isSelected: Boolean = false
+    val isSelected: MutableState<Boolean> = mutableStateOf(false)
 )

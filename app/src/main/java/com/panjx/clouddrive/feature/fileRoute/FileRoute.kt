@@ -1,5 +1,9 @@
 package com.panjx.clouddrive.feature.fileRoute
 
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,7 +68,21 @@ fun FileRoute() {
 @Composable
 fun FileScreen() {
     var showSearchBar by remember { mutableStateOf(false) } // 控制搜索栏显示
-    val FileList = remember { mutableStateOf(fileList) }
+    // 使用可观察的mutableStateList
+    val fileList = remember { mutableStateListOf(*fileList.toTypedArray()) }
+
+    // 记录所有选中文件的ID
+    val selectedFiles = remember { mutableStateListOf<String>() }
+
+    // 处理选中状态变化的回调
+    fun handleSelectChange(fileId: String, isSelected: Boolean) {
+        if (isSelected) {
+            selectedFiles.add(fileId)
+        } else {
+            selectedFiles.remove(fileId)
+        }
+        Log.d("Selected", "当前选中: ${selectedFiles.size} 个文件")
+    }
     Scaffold(
         topBar = {
             FileTopBar(
@@ -71,17 +90,41 @@ fun FileScreen() {
                 showBackIcon = showSearchBar
             )
         },
+        bottomBar = {
+            AnimatedVisibility(
+                visible = selectedFiles.isNotEmpty(),
+                enter = slideInVertically(initialOffsetY = { it }),   // 从底部滑入
+                exit = slideOutVertically(targetOffsetY = { it })    // 向底部滑出
+            ) {
+                Text(
+                    text = "已选中 ${selectedFiles.size} 个文件",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(vertical = 12.dp, horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
 
     ) { innerPadding ->
         // 文件列表内容（示例）
         LazyColumn(
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
+                .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            items(fileList) {
-                ItemFile(data=it)
+            items(fileList, key = { it.id }) { file ->
+                ItemFile(
+                    data = file,
+                    onSelectChange = { isSelected ->
+                        handleSelectChange(file.id, isSelected)
+                    }
+                )
             }
         }
+
     }
 }
 
