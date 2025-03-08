@@ -25,7 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.panjx.clouddrive.R
-import com.panjx.clouddrive.ui.theme.CloudDriveTheme
+import com.panjx.clouddrive.core.design.theme.MyAppTheme
 import com.panjx.clouddrive.util.SuperDateUtil
 
 @Composable
@@ -101,7 +101,7 @@ fun SplashScreen(
 @Preview(showBackground = true)
 @Composable
 fun SplashRoutePreview() {
-    CloudDriveTheme {
+    MyAppTheme {
         SplashScreen(2025)
     }
 }

@@ -4,14 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
-import com.panjx.clouddrive.feature.splash.SplashRoute
 import com.panjx.clouddrive.ui.MyApp
-import com.panjx.clouddrive.ui.theme.CloudDriveTheme
+import com.panjx.clouddrive.core.design.theme.MyAppTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,10 +15,11 @@ class MainActivity : ComponentActivity() {
         // 设置沉浸式状态栏
         enableEdgeToEdge()
 
-
+        // 关键：允许内容延伸到系统栏下方
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             val navController = rememberNavController()
-            CloudDriveTheme {
+            MyAppTheme {
                 MyApp(
                     navController = navController,
                 )
