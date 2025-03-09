@@ -38,6 +38,7 @@ import com.panjx.clouddrive.util.DateTimeUtils
 @Composable
 fun ItemFile(
     data: File,
+    isSelected: Boolean, // 新增参数
     modifier: Modifier = Modifier,
     onSelectChange: (Boolean) -> Unit // 新增回调
 ) {
@@ -81,7 +82,7 @@ fun ItemFile(
             )
         }
         // 动态切换选中图标
-        val icon = if (data.isSelected.value) {
+        val icon = if (isSelected) { // 使用参数状态
             Icons.Filled.RadioButtonChecked
         } else {
             Icons.Filled.RadioButtonUnchecked
@@ -90,17 +91,16 @@ fun ItemFile(
         Icon(
             imageVector = icon,
             contentDescription = "Select",
-            tint = if (data.isSelected.value) {
+            tint = if (isSelected) {
                 MaterialTheme.colorScheme.primary
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
             modifier = Modifier
                 .size(20.dp)
+                .size(20.dp)
                 .clickable {
-                    val newState = !data.isSelected.value
-                    data.isSelected.value = newState // 更新自身状态
-                    onSelectChange(newState) // 通知父组件
+                    onSelectChange(!isSelected) // 直接传递新状态
                 }
         )
 
@@ -111,10 +111,8 @@ fun ItemFile(
 fun ItemFilePreview() {
     ItemFile(
         data = FILE,
-        onSelectChange = { isSelected ->
-            // 可在此处处理选中逻辑（如更新列表状态）
-            FILE.isSelected.value = isSelected
-        }
+        isSelected = false, // 预览时默认未选中
+        onSelectChange = {}
     )
 
 }

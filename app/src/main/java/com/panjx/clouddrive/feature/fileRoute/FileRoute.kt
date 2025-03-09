@@ -53,14 +53,13 @@ fun FileScreen(
     // 记录所有选中文件的ID
     val selectedFiles = remember { mutableStateListOf<String>() }
 
-    // 处理选中状态变化的回调
+    // 优化选中处理逻辑
     fun handleSelectChange(fileId: String, isSelected: Boolean) {
         if (isSelected) {
             selectedFiles.add(fileId)
         } else {
             selectedFiles.remove(fileId)
         }
-        Log.d("Selected", "当前选中: ${selectedFiles.size} 个文件")
     }
     Scaffold(
         topBar = {
@@ -97,6 +96,7 @@ fun FileScreen(
             items(fileList, key = { it.id }) { file ->
                 ItemFile(
                     data = file,
+                    isSelected = selectedFiles.contains(file.id), // 传递选中状态
                     onSelectChange = { isSelected ->
                         handleSelectChange(file.id, isSelected)
                     }

@@ -1,9 +1,12 @@
 package com.panjx.clouddrive.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import com.panjx.clouddrive.feature.main.mainScreen
 import com.panjx.clouddrive.feature.main.navigateToMain
 import com.panjx.clouddrive.feature.splash.SPLASH_ROUTE

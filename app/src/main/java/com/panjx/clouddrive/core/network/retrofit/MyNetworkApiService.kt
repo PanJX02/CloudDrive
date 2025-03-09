@@ -1,0 +1,27 @@
+package com.panjx.clouddrive.core.network.retrofit
+
+import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.response.NetworkPageData
+import com.panjx.clouddrive.core.modle.response.NetworkResponse
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Query
+
+interface MyNetworkApiService {
+    // 获取文件列表
+    @GET("files/page")
+    suspend fun files():NetworkResponse<NetworkPageData<File>>
+
+    // 获取文件详情
+    @GET("files/info")
+    suspend fun fileDetails(
+        @Query(value="id") id:String
+    ):NetworkResponse<File>
+
+//    //登录
+//    @POST("/login")
+//    suspend fun login(
+//        @Body data: User
+//    ):NetworkResponse<Session>
+}

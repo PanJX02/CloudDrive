@@ -2,6 +2,7 @@ package com.panjx.clouddrive.core.modle
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import kotlinx.serialization.Serializable
 
 /**
  * 文件/目录实体类
@@ -19,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
  * @property isDir 是否为目录标识，true表示目录，false表示文件
  * @property isSelected 选择状态（主要用于UI交互），默认未选中
  */
+@Serializable
 data class File(
     val id: String,
     val name: String,
@@ -29,5 +31,4 @@ data class File(
     val createTime: Long,
     val updateTime: Long,
     val isDir: Boolean,
-    val isSelected: MutableState<Boolean> = mutableStateOf(false)
 )

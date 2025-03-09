@@ -1,6 +1,9 @@
 package com.panjx.clouddrive.core.modle.response
 
+import kotlinx.serialization.Serializable
+
 // 解析网络响应
+@Serializable
 data class NetworkResponse<T> (
     // 状态码
     val code: Int? = null,
