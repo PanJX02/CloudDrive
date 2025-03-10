@@ -19,6 +19,9 @@ sealed class FileUiState {
 class FileViewModel: ViewModel() {
     private val _uiState = MutableStateFlow<FileUiState>(FileUiState.Loading)
     val uiState: StateFlow<FileUiState> = _uiState
+    
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     init {
         loadData()
@@ -26,14 +29,30 @@ class FileViewModel: ViewModel() {
 
     fun loadData() {
         viewModelScope.launch {
-            _uiState.value = FileUiState.Loading
+            Log.d("FileViewModel", "loadData: 开始加载数据")
+            // 如果是初始加载，显示Loading状态，否则使用isRefreshing
+            if (_uiState.value !is FileUiState.Success) {
+                _uiState.value = FileUiState.Loading
+            } else {
+                _isRefreshing.value = true
+            }
+
             try {
-                val files = MyRetrofitDatasource.files()
-                val fileList = files.data?.list ?: emptyList()
-                _uiState.value = FileUiState.Success(fileList)
+                val response = MyRetrofitDatasource.files()
+
+                if (response.code == 200) { // 或其他表示成功的状态码
+                    Log.d("FileViewModel", "loadData: 请求成功，数据为：${response.data}")
+                    val fileList = response.data?.list ?: emptyList()
+                    _uiState.value = FileUiState.Success(fileList)
+                } else {
+                    Log.e("FileViewModel", "loadData: 请求失败，错误码：${response.code}，错误信息：${response.message}")
+                    _uiState.value = FileUiState.Error(response.message ?: "请求失败，错误码：${response.code}")
+                }
             } catch (e: Exception) {
                 Log.e("FileViewModel", "网络请求失败: ${e.message}")
                 _uiState.value = FileUiState.Error(e.message ?: "未知错误")
+            } finally {
+                _isRefreshing.value = false
             }
         }
     }
