@@ -3,6 +3,8 @@ package com.panjx.clouddrive.feature.main
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.panjx.clouddrive.data.UserPreferences
+import com.panjx.clouddrive.feature.login.LOGIN_ROUTE
 import com.panjx.clouddrive.feature.splash.SPLASH_ROUTE
 import com.panjx.clouddrive.feature.splash.SplashRoute
 
@@ -28,11 +30,15 @@ fun NavController.navigateToMain(): Unit {
  * 主页路由
  */
 fun NavGraphBuilder.mainScreen(
-    finishPage: () -> Unit
+    finishPage: () -> Unit,
+    userPreferences: UserPreferences,
+    onNavigateToLogin: () -> Unit
 ) {
     composable(MAIN_ROUTE) {
         MainRote(
-            finishPage = finishPage
+            finishPage = finishPage,
+            userPreferences = userPreferences,
+            onNavigateToLogin = onNavigateToLogin
         )
     }
 }

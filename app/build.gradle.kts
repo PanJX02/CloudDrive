@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     kotlin("plugin.serialization") version "1.9.24"
+    kotlin("kapt")
+    id("com.google.dagger.hilt.android") version "2.50"
 }
 
 android {
@@ -66,10 +68,13 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.security.crypto)
-
+    // 数据存储相关
     implementation(libs.androidx.datastore.preferences)
 
-
+    // Hilt依赖注入
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.android.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

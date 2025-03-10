@@ -16,6 +16,7 @@ class UserPreferences(private val context: Context) {
     companion object {
         private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         private val USERNAME = stringPreferencesKey("username")
+        private val TOKEN = stringPreferencesKey("token")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data
@@ -28,10 +29,16 @@ class UserPreferences(private val context: Context) {
             preferences[USERNAME] ?: ""
         }
 
-    suspend fun setLoggedIn(isLoggedIn: Boolean, username: String = "") {
+    val token: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[TOKEN] ?: ""
+        }
+
+    suspend fun setLoggedIn(isLoggedIn: Boolean, username: String = "", token: String = "") {
         context.dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN] = isLoggedIn
             preferences[USERNAME] = username
+            preferences[TOKEN] = token
         }
     }
 
@@ -39,6 +46,7 @@ class UserPreferences(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN] = false
             preferences[USERNAME] = ""
+            preferences[TOKEN] = ""
         }
     }
 } 

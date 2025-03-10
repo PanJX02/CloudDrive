@@ -3,13 +3,14 @@ package com.panjx.clouddrive.core.network.datasource
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.panjx.clouddrive.core.config.Config
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.request.User
+import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
 import com.panjx.clouddrive.core.network.di.NetworkModule
 import com.panjx.clouddrive.core.network.retrofit.MyNetworkApiService
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
-import retrofit2.http.GET
 import retrofit2.http.Query
 
 object MyRetrofitDatasource {
@@ -31,5 +32,11 @@ object MyRetrofitDatasource {
         @Query(value="id") id:String
     ): NetworkResponse<File>{
         return service.fileDetails(id)
+    }
+
+    suspend fun login(
+        username: String, password: String
+    ): NetworkResponse<LoginData> {
+        return service.login(User(username, password))
     }
 }

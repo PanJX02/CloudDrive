@@ -4,7 +4,7 @@ import com.panjx.clouddrive.core.modle.File
 
 object FilePreviewParameterData {
 
-    val FILE=File(
+    val FILE= File(
         id = "1",
         name = "sunset.jpg",
         size = 3_145_728,

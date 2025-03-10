@@ -1,6 +1,8 @@
 package com.panjx.clouddrive.core.network.retrofit
 
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.request.User
+import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
 import retrofit2.http.Body
@@ -24,4 +26,8 @@ interface MyNetworkApiService {
 //    suspend fun login(
 //        @Body data: User
 //    ):NetworkResponse<Session>
+    @POST("login")
+    suspend fun login(
+        @Body data: User
+    ): NetworkResponse<LoginData>
 }

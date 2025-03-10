@@ -5,6 +5,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,21 +67,21 @@ fun SplashScreen(
             .fillMaxSize()
             .background(color = MaterialTheme.colorScheme.background)
     ) {
-        //region Logo
-        Image(painter = painterResource(id = R.drawable.splash_logo),
+        Icon(
+            imageVector = Icons.Filled.Cloud,
             contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier
-                .width(120.dp)
-                .height(120.dp)
+                .size(160.dp)
                 .align(Alignment.TopCenter)
                 .offset(y = 120.dp)
         )
-        //endregion
 
         //名字
         Text(
             text = stringResource(id = R.string.app_name),
             style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .offset(y = (-80).dp)
@@ -90,6 +93,7 @@ fun SplashScreen(
 
         Text(
             "倒计时：$timeLeft",
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .offset(y = 40.dp)

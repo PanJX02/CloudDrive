@@ -1,25 +1,15 @@
 package com.panjx.clouddrive.feature.fileRoute
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -27,18 +17,46 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.panjx.clouddrive.core.design.component.FileTopBar
 import com.panjx.clouddrive.core.design.theme.MyAppTheme
 import com.panjx.clouddrive.core.modle.File
-import com.panjx.clouddrive.core.ui.FilePreviewParameterData.FILES
 import com.panjx.clouddrive.feature.file.component.ItemFile
-import com.panjx.clouddrive.feature.splash.SplashViewModel
 
 @Composable
 fun FileRoute(
     viewModel: FileViewModel = viewModel()
 ) {
-    val datum by viewModel.datum.collectAsState()
-    FileScreen(
-        files = datum
-    )
+    val uiState by viewModel.uiState.collectAsState()
+    
+    when (uiState) {
+        is FileUiState.Loading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        is FileUiState.Error -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = (uiState as FileUiState.Error).message)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { viewModel.loadData() }) {
+                        Text("重试")
+                    }
+                }
+            }
+        }
+        is FileUiState.Success -> {
+            FileScreen(
+                files = (uiState as FileUiState.Success).files
+            )
+        }
+    }
 }
 
 @Composable

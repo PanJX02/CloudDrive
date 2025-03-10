@@ -1,6 +1,5 @@
 package com.panjx.clouddrive.feature.main
 
-
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.WindowInsets
@@ -12,7 +11,6 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
@@ -21,20 +19,27 @@ import androidx.navigation.compose.rememberNavController
 import com.panjx.clouddrive.core.design.component.BottomBar
 import com.panjx.clouddrive.core.design.theme.Gray20
 import com.panjx.clouddrive.core.design.theme.Gray40
+import com.panjx.clouddrive.data.UserPreferences
 import com.panjx.clouddrive.feature.fileRoute.FileRoute
+import com.panjx.clouddrive.feature.login.LOGIN_ROUTE
 import com.panjx.clouddrive.feature.meRoute.MeRoute
 import com.panjx.clouddrive.feature.transfersRoute.TransfersRoute
 
-
 @Composable
 fun MainRote(
-    finishPage: () -> Unit
+    finishPage: () -> Unit,
+    userPreferences: UserPreferences,
+    onNavigateToLogin: () -> Unit
 ) {
-    MainScreen(finishPage)
+    MainScreen(finishPage, userPreferences, onNavigateToLogin)
 }
 
 @Composable
-fun MainScreen(finishPage: () -> Unit = {}) {
+fun MainScreen(
+    finishPage: () -> Unit = {},
+    userPreferences: UserPreferences,
+    onNavigateToLogin: () -> Unit
+) {
     Log.d("Composable", "MainScreen")
     val navController = rememberNavController()
 
@@ -53,7 +58,6 @@ fun MainScreen(finishPage: () -> Unit = {}) {
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0) // 禁用默认内边距
-        // 底部导航项点击事件
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -62,7 +66,12 @@ fun MainScreen(finishPage: () -> Unit = {}) {
         ) {
             composable(Screen.File.route) { FileRoute() }
             composable(Screen.Transfers.route) { TransfersRoute() }
-            composable(Screen.Me.route) { MeRoute() }
+            composable(Screen.Me.route) { 
+                MeRoute(
+                    userPreferences = userPreferences,
+                    onLogout = onNavigateToLogin
+                )
+            }
         }
     }
 }
