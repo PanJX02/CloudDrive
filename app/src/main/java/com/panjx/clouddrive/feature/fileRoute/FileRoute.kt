@@ -1,12 +1,23 @@
 package com.panjx.clouddrive.feature.fileRoute
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Scanner
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,19 +70,17 @@ fun FileRoute(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileScreen(
     toSearch: () -> Unit={},
     files: List<File> = listOf(),
 ) {
-    var showSearchBar by remember { mutableStateOf(false) } // 控制搜索栏显示
-    // 使用可观察的mutableStateList
+    var showSearchBar by remember { mutableStateOf(false) }
+    var showBottomSheet by remember { mutableStateOf(false) }
     val fileList = remember { mutableStateListOf(*files.toTypedArray()) }
-
-    // 记录所有选中文件的ID
     val selectedFiles = remember { mutableStateListOf<String>() }
 
-    // 优化选中处理逻辑
     fun handleSelectChange(fileId: String, isSelected: Boolean) {
         if (isSelected) {
             selectedFiles.add(fileId)
@@ -79,6 +88,59 @@ fun FileScreen(
             selectedFiles.remove(fileId)
         }
     }
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "文件操作",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                ListItem(
+                    headlineContent = { Text("上传文件") },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Default.Upload,
+                            contentDescription = "上传文件"
+                        )
+                    },
+                    modifier = Modifier.clickable { /* TODO: 处理上传文件 */ }
+                )
+                
+                ListItem(
+                    headlineContent = { Text("新建文件夹") },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Default.CreateNewFolder,
+                            contentDescription = "新建文件夹"
+                        )
+                    },
+                    modifier = Modifier.clickable { /* TODO: 处理新建文件夹 */ }
+                )
+                
+                ListItem(
+                    headlineContent = { Text("扫描文件") },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Default.Scanner,
+                            contentDescription = "扫描文件"
+                        )
+                    },
+                    modifier = Modifier.clickable { /* TODO: 处理扫描文件 */ }
+                )
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             FileTopBar(
@@ -86,46 +148,68 @@ fun FileScreen(
                 showBackIcon = showSearchBar
             )
         },
-        bottomBar = {
+        floatingActionButton = {
+            val offsetX by animateFloatAsState(
+                targetValue = if (selectedFiles.isEmpty()) 0f else 100f,
+                animationSpec = tween(300),
+                label = "fabOffset"
+            )
+            
+            FloatingActionButton(
+                onClick = { showBottomSheet = true },
+                modifier = Modifier
+                    .padding(bottom = 40.dp)
+                    .offset(x = (-32).dp + offsetX.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "添加"
+                )
+            }
+        },
+        floatingActionButtonPosition = FabPosition.End
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .padding(bottom = if (selectedFiles.isNotEmpty()) 40.dp else 0.dp)
+            ) {
+                items(fileList, key = { it.id }) { file ->
+                    ItemFile(
+                        data = file,
+                        isSelected = selectedFiles.contains(file.id),
+                        onSelectChange = { isSelected ->
+                            handleSelectChange(file.id, isSelected)
+                        }
+                    )
+                }
+            }
+
             AnimatedVisibility(
                 visible = selectedFiles.isNotEmpty(),
-                enter = slideInVertically(initialOffsetY = { it }),   // 从底部滑入
-                exit = slideOutVertically(targetOffsetY = { it })    // 向底部滑出
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it }),
+                modifier = Modifier.align(Alignment.BottomCenter)
             ) {
-                Text(
-                    text = "已选中 ${selectedFiles.size} 个文件",
-                    style = MaterialTheme.typography.bodyMedium,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(vertical = 12.dp, horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                        .height(40.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "已选中 ${selectedFiles.size} 个文件",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
-
-    ) { innerPadding ->
-        // 文件列表内容（示例）
-        LazyColumn(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-        ) {
-            items(fileList, key = { it.id }) { file ->
-                ItemFile(
-                    data = file,
-                    isSelected = selectedFiles.contains(file.id), // 传递选中状态
-                    onSelectChange = { isSelected ->
-                        handleSelectChange(file.id, isSelected)
-                    }
-                )
-            }
-        }
-
     }
 }
-
-
 
 @Preview(showBackground = true)
 @Composable
