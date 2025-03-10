@@ -1,5 +1,6 @@
 package com.panjx.clouddrive.feature.meRoute
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -8,25 +9,37 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.panjx.clouddrive.data.UserPreferences
-import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeRoute(
-    userPreferences: UserPreferences,
-    onLogout: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToShared: () -> Unit,
+    onNavigateToFavorites: () -> Unit,
+    onNavigateToRecycleBin: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToAnnouncements: () -> Unit
 ) {
-    MeScreen(userPreferences, onLogout)
+    MeScreen(
+        onNavigateToSettings = onNavigateToSettings,
+        onNavigateToShared = onNavigateToShared,
+        onNavigateToFavorites = onNavigateToFavorites,
+        onNavigateToRecycleBin = onNavigateToRecycleBin,
+        onNavigateToProfile = onNavigateToProfile,
+        onNavigateToAnnouncements = onNavigateToAnnouncements
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeScreen(
-    userPreferences: UserPreferences,
-    onLogout: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToShared: () -> Unit,
+    onNavigateToFavorites: () -> Unit,
+    onNavigateToRecycleBin: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToAnnouncements: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -45,6 +58,7 @@ fun MeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp)
+                    .clickable { onNavigateToProfile() }
             ) {
                 Row(
                     modifier = Modifier
@@ -74,50 +88,59 @@ fun MeScreen(
 
             // 功能列表
             ListItem(
+                headlineContent = { Text("我的分享") },
+                leadingContent = { 
+                    Icon(Icons.Default.Share, contentDescription = "分享")
+                },
+                trailingContent = { 
+                    Icon(Icons.Default.ChevronRight, contentDescription = "进入")
+                },
+                modifier = Modifier.clickable { onNavigateToShared() }
+            )
+            
+            ListItem(
+                headlineContent = { Text("收藏夹") },
+                leadingContent = { 
+                    Icon(Icons.Default.Favorite, contentDescription = "收藏")
+                },
+                trailingContent = { 
+                    Icon(Icons.Default.ChevronRight, contentDescription = "进入")
+                },
+                modifier = Modifier.clickable { onNavigateToFavorites() }
+            )
+            
+            ListItem(
+                headlineContent = { Text("回收站") },
+                leadingContent = { 
+                    Icon(Icons.Default.Delete, contentDescription = "回收站")
+                },
+                trailingContent = { 
+                    Icon(Icons.Default.ChevronRight, contentDescription = "进入")
+                },
+                modifier = Modifier.clickable { onNavigateToRecycleBin() }
+            )
+            
+            ListItem(
+                headlineContent = { Text("公告中心") },
+                leadingContent = { 
+                    Icon(Icons.Default.Notifications, contentDescription = "公告")
+                },
+                trailingContent = { 
+                    Icon(Icons.Default.ChevronRight, contentDescription = "进入")
+                },
+                modifier = Modifier.clickable { onNavigateToAnnouncements() }
+            )
+            
+            ListItem(
                 headlineContent = { Text("设置") },
                 leadingContent = { 
                     Icon(Icons.Default.Settings, contentDescription = "设置")
                 },
                 trailingContent = { 
                     Icon(Icons.Default.ChevronRight, contentDescription = "进入")
-                }
-            )
-            
-            ListItem(
-                headlineContent = { Text("清理缓存") },
-                leadingContent = { 
-                    Icon(Icons.Default.DeleteOutline, contentDescription = "清理缓存")
                 },
-                trailingContent = { 
-                    Icon(Icons.Default.ChevronRight, contentDescription = "进入")
-                }
+                modifier = Modifier.clickable { onNavigateToSettings() }
             )
-            
-            ListItem(
-                headlineContent = { Text("关于") },
-                leadingContent = { 
-                    Icon(Icons.Default.Info, contentDescription = "关于")
-                },
-                trailingContent = { 
-                    Icon(Icons.Default.ChevronRight, contentDescription = "进入")
-                }
-            )
-            
-            Spacer(modifier = Modifier.weight(1f))
-            
-            Button(
-                onClick = {
-                    scope.launch {
-                        userPreferences.clearLoginState()
-                        onLogout()
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp)
-            ) {
-                Text("退出登录")
-            }
         }
     }
 }
