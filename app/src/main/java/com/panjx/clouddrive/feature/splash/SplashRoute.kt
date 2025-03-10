@@ -4,11 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,7 +19,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-
 import com.panjx.clouddrive.R
 import com.panjx.clouddrive.core.design.theme.MyAppTheme
 import com.panjx.clouddrive.util.SuperDateUtil
@@ -32,22 +27,27 @@ import com.panjx.clouddrive.util.SuperDateUtil
 fun SplashRoute(
     modifier: Modifier? = Modifier,
     toMain: () -> Unit,
+    toLogin: () -> Unit,
     viewModel: SplashViewModel = viewModel()
 ) {
     // 获取倒计时
     val timeLeft by viewModel.timeLeft.collectAsStateWithLifecycle()
     // 跳转主页面
     val navigateToMain by viewModel.navigateToMain.collectAsState()
+    // 跳转登录页面
+    val navigateToLogin by viewModel.navigateToLogin.collectAsState()
 
-    SplashScreen(SuperDateUtil.currentYear(),
+    SplashScreen(
+        SuperDateUtil.currentYear(),
         modifier,
         timeLeft,
         viewModel::onSkipClick
     )
 
-    if (navigateToMain) {
-        LaunchedEffect(true) {
-            toMain()
+    LaunchedEffect(navigateToMain, navigateToLogin) {
+        when {
+            navigateToMain -> toMain()
+            navigateToLogin -> toLogin()
         }
     }
 }

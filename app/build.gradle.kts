@@ -67,6 +67,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.security.crypto)
 
+    implementation(libs.androidx.datastore.preferences)
+
 
 
     testImplementation(libs.junit)
