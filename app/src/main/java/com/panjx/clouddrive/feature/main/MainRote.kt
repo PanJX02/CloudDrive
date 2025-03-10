@@ -108,6 +108,9 @@ fun MainScreen(
                     onLogout = onNavigateToLogin,
                     onNavigateToAbout = {
                         navController.navigate(Screen.About.route)
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }

@@ -17,7 +17,8 @@ import kotlinx.coroutines.launch
 fun SettingsRoute(
     userPreferences: UserPreferences,
     onLogout: () -> Unit,
-    onNavigateToAbout: () -> Unit
+    onNavigateToAbout: () -> Unit,
+    onNavigateBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     
@@ -26,7 +27,7 @@ fun SettingsRoute(
             TopAppBar(
                 title = { Text("设置") },
                 navigationIcon = {
-                    IconButton(onClick = { /* 返回上一页 */ }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 }

@@ -47,7 +47,7 @@ fun AnnouncementsRoute(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "2024-03-10",
+                        text = "2025-03-10",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -77,7 +77,7 @@ fun AnnouncementsRoute(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "2024-03-08",
+                        text = "2025-03-08",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
