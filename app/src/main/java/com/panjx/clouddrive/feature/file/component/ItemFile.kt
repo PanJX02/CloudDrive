@@ -29,18 +29,26 @@ import com.panjx.clouddrive.util.DateTimeUtils
 @Composable
 fun ItemFile(
     data: File,
-    isSelected: Boolean, // 新增参数
+    isSelected: Boolean,
     modifier: Modifier = Modifier,
-    onSelectChange: (Boolean) -> Unit // 新增回调
+    onSelectChange: (Boolean) -> Unit,
+    onFolderClick: ((String, String) -> Unit)? = null // 添加文件夹点击回调
 ) {
     Log.d("Composable", "ItemFile")
     Row(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                // 如果是文件夹且提供了点击回调，则触发回调
+                if ((data.type == "Folder" || data.isDir) && onFolderClick != null) {
+                    onFolderClick(data.id, data.name)
+                }
+            }
             .padding(horizontal = 15.dp)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (data.type == "Folder"){
+        if (data.type == "Folder" || data.isDir){
             Icon(
                 imageVector = Icons.Filled.Folder,
                 contentDescription = "Folder",

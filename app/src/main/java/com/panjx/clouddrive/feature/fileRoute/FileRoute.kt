@@ -1,5 +1,6 @@
 package com.panjx.clouddrive.feature.fileRoute
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -10,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -103,8 +105,15 @@ fun FileScreen(
 ) {
     var showSearchBar by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
-    val fileList = remember { mutableStateListOf(*files.toTypedArray()) }
+    val fileList = remember(files) { mutableStateListOf(*files.toTypedArray()) }
     val selectedFiles = remember { mutableStateListOf<String>() }
+    val currentPath by viewModel.currentPath.collectAsState()
+    val currentDirId by viewModel.currentDirId.collectAsState()
+
+    // 处理返回键事件
+    BackHandler(enabled = currentPath.size > 1) {
+        viewModel.navigateUp()
+    }
 
     fun handleSelectChange(fileId: String, isSelected: Boolean) {
         if (isSelected) {
@@ -168,10 +177,49 @@ fun FileScreen(
 
     Scaffold(
         topBar = {
-            FileTopBar(
-                toSearch = {  },
-                showBackIcon = showSearchBar
-            )
+            Column {
+                FileTopBar(
+                    toSearch = {  },
+                    showBackIcon = currentPath.size > 1,
+                    onNavigateUp = { viewModel.navigateUp() }
+                )
+                
+                // 添加面包屑导航，显示当前路径
+                if (currentPath.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "位置: ",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        currentPath.forEachIndexed { index, pathItem ->
+                            Text(
+                                text = pathItem.second,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (index == currentPath.size - 1) 
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.clickable(enabled = index != currentPath.size - 1) {
+                                    // 点击路径导航到对应目录
+                                    viewModel.loadDirectoryContent(pathItem.first)
+                                }
+                            )
+                            if (index < currentPath.size - 1) {
+                                Text(
+                                    text = " > ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         },
         floatingActionButton = {
             val offsetX by animateFloatAsState(
@@ -214,6 +262,10 @@ fun FileScreen(
                             isSelected = selectedFiles.contains(file.id),
                             onSelectChange = { isSelected ->
                                 handleSelectChange(file.id, isSelected)
+                            },
+                            onFolderClick = { folderId, folderName ->
+                                // 点击文件夹，加载文件夹内容
+                                viewModel.loadDirectoryContent(folderId, folderName)
                             }
                         )
                     }

@@ -34,7 +34,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun FileTopBar(
     toSearch: () -> Unit,
-    showBackIcon: Boolean
+    showBackIcon: Boolean,
+    onNavigateUp: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) } // 控制更多菜单显示
     CenterAlignedTopAppBar(
@@ -55,10 +56,10 @@ fun FileTopBar(
                 contentAlignment = Alignment.Center
             ){
                 if (showBackIcon) {
-                    IconButton(onClick = { /* 返回逻辑 */ }) {
+                    IconButton(onClick = { onNavigateUp() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
+                            contentDescription = "返回上一级"
                         )
                     }
                 }
