@@ -1,6 +1,9 @@
 package com.panjx.clouddrive.feature.fileRoute
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -8,6 +11,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +22,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
@@ -39,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -47,6 +54,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -54,6 +64,9 @@ import com.panjx.clouddrive.core.design.component.FileTopBar
 import com.panjx.clouddrive.core.design.theme.MyAppTheme
 import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.feature.file.component.ItemFile
+import com.panjx.clouddrive.feature.fileRoute.component.FileInfoDialog
+import com.panjx.clouddrive.util.FileUtils
+import kotlinx.coroutines.delay
 
 @Composable
 fun FileRoute(
@@ -109,6 +122,25 @@ fun FileScreen(
     val selectedFiles = remember { mutableStateListOf<String>() }
     val currentPath by viewModel.currentPath.collectAsState()
     val currentDirId by viewModel.currentDirId.collectAsState()
+    
+    // 文件信息对话框状态
+    var showFileInfoDialog by remember { mutableStateOf(false) }
+    var selectedFileInfo by remember { mutableStateOf(mapOf<String, Any>()) }
+    
+    // 获取Context
+    val context = LocalContext.current
+    
+    // 文件选择器
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            // 获取文件信息
+            val fileInfo = FileUtils.getFileInfoFromUri(context, it)
+            selectedFileInfo = fileInfo
+            showFileInfoDialog = true
+        }
+    }
 
     // 处理返回键事件
     BackHandler(enabled = currentPath.size > 1) {
@@ -121,6 +153,27 @@ fun FileScreen(
         } else {
             selectedFiles.remove(fileId)
         }
+    }
+    
+    // 显示文件信息对话框
+    if (showFileInfoDialog) {
+        // 获取当前路径中最后一个文件夹的名称
+        val currentFolderName = if (currentPath.isNotEmpty()) currentPath.last().second else "根目录"
+        
+        FileInfoDialog(
+            fileName = selectedFileInfo["name"] as? String ?: "未知文件",
+            fileSize = selectedFileInfo["formattedSize"] as? String ?: "未知大小",
+            fileSizeBytes = (selectedFileInfo["size"] as? Long)?.toString() ?: "",
+            fileType = selectedFileInfo["mimeType"] as? String ?: "未知类型",
+            fileExtension = selectedFileInfo["extension"] as? String ?: "",
+            uploadFolderId = currentDirId,
+            uploadFolderName = currentFolderName,
+            onDismiss = { showFileInfoDialog = false },
+            onConfirm = {
+                // TODO: 处理文件上传逻辑
+                showFileInfoDialog = false
+            }
+        )
     }
 
     if (showBottomSheet) {
@@ -147,7 +200,12 @@ fun FileScreen(
                             contentDescription = "上传文件"
                         )
                     },
-                    modifier = Modifier.clickable { /* TODO: 处理上传文件 */ }
+                    modifier = Modifier.clickable { 
+                        // 关闭底部菜单
+                        showBottomSheet = false
+                        // 启动文件选择器
+                        filePickerLauncher.launch("*/*")
+                    }
                 )
                 
                 ListItem(
@@ -185,36 +243,89 @@ fun FileScreen(
                 )
                 
                 // 面包屑导航，显示当前路径
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
-                    Text(
-                        text = "位置: ",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    currentPath.forEachIndexed { index, pathItem ->
+                    val scrollState = rememberScrollState()
+                    
+                    // 当组件加载或路径变化时，自动滚动到最右侧
+                    LaunchedEffect(currentPath) {
+                        // 延迟一下再滚动，确保布局已完成
+                        delay(100)
+                        scrollState.animateScrollTo(scrollState.maxValue)
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(scrollState),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = pathItem.second,
+                            text = "位置: ",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (index == currentPath.size - 1) 
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.clickable(enabled = index != currentPath.size - 1) {
-                                // 点击路径导航到对应目录
-                                viewModel.loadDirectoryContent(pathItem.first)
-                            }
                         )
-                        if (index < currentPath.size - 1) {
+                        currentPath.forEachIndexed { index, pathItem ->
                             Text(
-                                text = " > ",
+                                text = pathItem.second,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (index == currentPath.size - 1) 
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.clickable(enabled = index != currentPath.size - 1) {
+                                    // 点击路径导航到对应目录
+                                    viewModel.loadDirectoryContent(pathItem.first)
+                                }
                             )
+                            if (index < currentPath.size - 1) {
+                                Text(
+                                    text = " > ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
+                        // 添加右侧空白，确保最后一项可以滑动到最左边
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    
+                    // 左侧阴影 - 仅当滚动位置不在最左侧时显示
+                    if (scrollState.value > 0) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .width(24.dp)
+                                .height(16.dp)
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                        )
+                    }
+                    
+                    // 右侧阴影 - 仅当滚动位置不在最右侧时显示
+                    if (scrollState.value < scrollState.maxValue) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .width(24.dp)
+                                .height(16.dp)
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                                        )
+                                    )
+                                )
+                        )
                     }
                 }
             }

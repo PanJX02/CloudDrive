@@ -77,6 +77,14 @@ class FileViewModel: ViewModel() {
                         newPath.add(Pair(dirId, dirName))
                         _currentPath.value = newPath
                     }
+                } else {
+                    // 处理点击面包屑导航已有路径的情况
+                    // 查找点击的路径项在当前路径中的位置
+                    val existingPathIndex = _currentPath.value.indexOfFirst { it.first == dirId }
+                    if (existingPathIndex != -1) {
+                        // 如果找到了，截断路径至该位置（保留该项）
+                        _currentPath.value = _currentPath.value.subList(0, existingPathIndex + 1)
+                    }
                 }
                 
                 _uiState.value = FileUiState.Success(filteredFiles)
