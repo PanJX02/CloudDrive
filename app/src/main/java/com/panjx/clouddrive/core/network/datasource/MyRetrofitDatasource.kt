@@ -9,15 +9,16 @@ import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
 import com.panjx.clouddrive.core.network.di.NetworkModule
 import com.panjx.clouddrive.core.network.retrofit.MyNetworkApiService
+import com.panjx.clouddrive.data.UserPreferences
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
 import retrofit2.http.Query
 
-object MyRetrofitDatasource {
+class MyRetrofitDatasource(private val userPreferences: UserPreferences) {
     //网络请求接口
     private val service = Retrofit.Builder()
         .baseUrl(Config.ENDPOINT)
-        .callFactory(NetworkModule.providesOkHttpClient())
+        .callFactory(NetworkModule.providesOkHttpClient(userPreferences))
         .addConverterFactory(NetworkModule.provideNetworkJson().asConverterFactory("application/json".toMediaType())) //添加json转换器
         .build()
         .create(MyNetworkApiService::class.java)

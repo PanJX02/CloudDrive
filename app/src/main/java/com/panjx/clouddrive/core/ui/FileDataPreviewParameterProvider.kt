@@ -221,6 +221,28 @@ object FilePreviewParameterData {
             createTime = 1631318400000,
             updateTime = 1631404800000,
             isDir = true
-        )
+        ),
+        File(
+            id = "19",
+            name = "backup1",
+            size = 0,
+            type = "directory",
+            parentId = "18",
+            path = "/projects/backups/",
+            createTime = 1631392000000,
+            updateTime = 1631478400000,
+            isDir = true
+        ),
+        File(
+            id = "20",
+            name = "backup2",
+            size = 0,
+            type = "directory",
+            parentId = "19",
+            path = "/projects/backups1/",
+            createTime = 1631478400000,
+            updateTime = 1631564800000,
+            isDir = true
+        ),
     )
 }

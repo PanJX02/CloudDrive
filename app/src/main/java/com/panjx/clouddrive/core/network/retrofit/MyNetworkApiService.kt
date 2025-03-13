@@ -13,7 +13,9 @@ import retrofit2.http.Query
 interface MyNetworkApiService {
     // 获取文件列表
     @GET("files/page")
-    suspend fun files():NetworkResponse<NetworkPageData<File>>
+    suspend fun files(
+        @Query("file_pid") filePid: String? = null
+    ):NetworkResponse<NetworkPageData<File>>
 
     // 获取文件详情
     @GET("files/info")

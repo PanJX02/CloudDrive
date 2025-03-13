@@ -184,38 +184,36 @@ fun FileScreen(
                     onNavigateUp = { viewModel.navigateUp() }
                 )
                 
-                // 添加面包屑导航，显示当前路径
-                if (currentPath.size > 1) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                // 面包屑导航，显示当前路径
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "位置: ",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    currentPath.forEachIndexed { index, pathItem ->
                         Text(
-                            text = "位置: ",
+                            text = pathItem.second,
                             style = MaterialTheme.typography.bodySmall,
-                        )
-                        currentPath.forEachIndexed { index, pathItem ->
-                            Text(
-                                text = pathItem.second,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (index == currentPath.size - 1) 
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.clickable(enabled = index != currentPath.size - 1) {
-                                    // 点击路径导航到对应目录
-                                    viewModel.loadDirectoryContent(pathItem.first)
-                                }
-                            )
-                            if (index < currentPath.size - 1) {
-                                Text(
-                                    text = " > ",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            color = if (index == currentPath.size - 1) 
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.clickable(enabled = index != currentPath.size - 1) {
+                                // 点击路径导航到对应目录
+                                viewModel.loadDirectoryContent(pathItem.first)
                             }
+                        )
+                        if (index < currentPath.size - 1) {
+                            Text(
+                                text = " > ",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
