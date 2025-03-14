@@ -1,16 +1,24 @@
 package com.panjx.clouddrive.feature.fileRoute.component
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.panjx.clouddrive.core.design.theme.SpaceSmall
 
@@ -27,6 +35,13 @@ fun FileInfoDialog(
     fileExtension: String = "",
     uploadFolderId: String = "",
     uploadFolderName: String = "",
+    md5Hash: String = "",
+    md5Time: Long = 0,
+    sha1Hash: String = "",
+    sha1Time: Long = 0,
+    sha256Hash: String = "",
+    sha256Time: Long = 0,
+    isCalculatingHashes: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -36,10 +51,13 @@ fun FileInfoDialog(
             Text(text = "文件信息")
         },
         text = {
+            val scrollState = rememberScrollState()
+            
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
+                    .verticalScroll(scrollState)
             ) {
                 Text(
                     text = "文件名：$fileName",
@@ -98,6 +116,89 @@ fun FileInfoDialog(
                     text = "文件夹ID：$uploadFolderId",
                     style = MaterialTheme.typography.bodyLarge
                 )
+                
+                // 哈希值部分
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "文件哈希值",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                if (isCalculatingHashes) {
+                    // 显示计算中状态
+                    Spacer(modifier = Modifier.height(SpaceSmall))
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                        
+                        Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                        
+                        Text(
+                            text = "正在计算哈希值，请稍候...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else {
+                    // 显示计算结果
+                    if (md5Hash.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(SpaceSmall))
+                        
+                        Text(
+                            text = "MD5 ${if(md5Time > 0) "(${md5Time}ms)" else ""}：",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Text(
+                            text = md5Hash,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    
+                    if (sha1Hash.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(SpaceSmall))
+                        
+                        Text(
+                            text = "SHA1 ${if(sha1Time > 0) "(${sha1Time}ms)" else ""}：",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Text(
+                            text = sha1Hash,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    
+                    if (sha256Hash.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(SpaceSmall))
+                        
+                        Text(
+                            text = "SHA256 ${if(sha256Time > 0) "(${sha256Time}ms)" else ""}：",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Text(
+                            text = sha256Hash,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
         },
         confirmButton = {

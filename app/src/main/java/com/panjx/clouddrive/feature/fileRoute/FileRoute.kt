@@ -1,6 +1,7 @@
 package com.panjx.clouddrive.feature.fileRoute
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +69,7 @@ import com.panjx.clouddrive.feature.file.component.ItemFile
 import com.panjx.clouddrive.feature.fileRoute.component.FileInfoDialog
 import com.panjx.clouddrive.util.FileUtils
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun FileRoute(
@@ -126,19 +129,40 @@ fun FileScreen(
     // 文件信息对话框状态
     var showFileInfoDialog by remember { mutableStateOf(false) }
     var selectedFileInfo by remember { mutableStateOf(mapOf<String, Any>()) }
+    var fileHashes by remember { mutableStateOf<Map<String, Pair<String, Long>>>(emptyMap()) }
+    var isCalculatingHashes by remember { mutableStateOf(false) }
     
     // 获取Context
     val context = LocalContext.current
+    
+    // 协程作用域
+    val coroutineScope = rememberCoroutineScope()
     
     // 文件选择器
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            // 获取文件信息
+            // 获取文件基本信息（不含哈希值）
             val fileInfo = FileUtils.getFileInfoFromUri(context, it)
             selectedFileInfo = fileInfo
             showFileInfoDialog = true
+            
+            // 重置哈希值
+            fileHashes = emptyMap()
+            
+            // 异步计算哈希值
+            isCalculatingHashes = true
+            coroutineScope.launch {
+                try {
+                    val hashes = FileUtils.calculateFileHashesAsync(context, it)
+                    fileHashes = hashes
+                } catch (e: Exception) {
+                    Log.e("FileRoute", "计算哈希值异常: ${e.message}")
+                } finally {
+                    isCalculatingHashes = false
+                }
+            }
         }
     }
 
@@ -160,6 +184,11 @@ fun FileScreen(
         // 获取当前路径中最后一个文件夹的名称
         val currentFolderName = if (currentPath.isNotEmpty()) currentPath.last().second else "根目录"
         
+        // 获取哈希值和计算时间
+        val md5Data = fileHashes["md5"]
+        val sha1Data = fileHashes["sha1"]
+        val sha256Data = fileHashes["sha256"]
+        
         FileInfoDialog(
             fileName = selectedFileInfo["name"] as? String ?: "未知文件",
             fileSize = selectedFileInfo["formattedSize"] as? String ?: "未知大小",
@@ -168,6 +197,13 @@ fun FileScreen(
             fileExtension = selectedFileInfo["extension"] as? String ?: "",
             uploadFolderId = currentDirId,
             uploadFolderName = currentFolderName,
+            md5Hash = md5Data?.first ?: "",
+            md5Time = md5Data?.second ?: 0,
+            sha1Hash = sha1Data?.first ?: "",
+            sha1Time = sha1Data?.second ?: 0,
+            sha256Hash = sha256Data?.first ?: "",
+            sha256Time = sha256Data?.second ?: 0,
+            isCalculatingHashes = isCalculatingHashes,
             onDismiss = { showFileInfoDialog = false },
             onConfirm = {
                 // TODO: 处理文件上传逻辑

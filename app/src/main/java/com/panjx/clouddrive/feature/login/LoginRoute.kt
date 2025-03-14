@@ -1,9 +1,23 @@
 package com.panjx.clouddrive.feature.login
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -13,10 +27,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun LoginRoute(
     toMain: () -> Unit,
+    toRegister: () -> Unit,
     viewModel: LoginViewModel = viewModel()
 ) {
     val loginState by viewModel.loginState.collectAsState()
-    val username by viewModel.username.collectAsState()
+    val email by viewModel.email.collectAsState()
     val password by viewModel.password.collectAsState()
 
     LaunchedEffect(loginState) {
@@ -26,22 +41,24 @@ fun LoginRoute(
     }
 
     LoginScreen(
-        username = username,
+        email = email,
         password = password,
-        onUsernameChange = viewModel::onUsernameChange,
+        onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
         onLoginClick = viewModel::login,
+        onRegisterClick = toRegister,
         errorMessage = if (loginState is LoginState.Error) (loginState as LoginState.Error).message else null
     )
 }
 
 @Composable
 fun LoginScreen(
-    username: String,
+    email: String,
     password: String,
-    onUsernameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
+    onRegisterClick: () -> Unit,
     errorMessage: String? = null
 ) {
     Surface(
@@ -63,9 +80,9 @@ fun LoginScreen(
             )
 
             OutlinedTextField(
-                value = username,
-                onValueChange = onUsernameChange,
-                label = { Text("用户名") },
+                value = email,
+                onValueChange = onEmailChange,
+                label = { Text("邮箱") },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -120,6 +137,15 @@ fun LoginScreen(
                     .height(50.dp)
             ) {
                 Text("登录")
+            }
+            
+            TextButton(
+                onClick = onRegisterClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Text("没有账号？点击注册")
             }
         }
     }

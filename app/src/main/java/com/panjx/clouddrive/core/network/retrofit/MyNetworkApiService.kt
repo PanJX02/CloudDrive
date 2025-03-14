@@ -32,4 +32,23 @@ interface MyNetworkApiService {
     suspend fun login(
         @Body data: User
     ): NetworkResponse<LoginData>
+    
+    // 注册
+    @POST("register")
+    suspend fun register(
+        @Body data: User
+    ): NetworkResponse<LoginData>
+    
+    // 发送邮箱验证码
+    @POST("sendEmailVerifyCode")
+    suspend fun sendEmailVerifyCode(
+        @Query("email") email: String
+    ): NetworkResponse<Nothing>
+    
+    // 验证邮箱验证码
+    @POST("verifyEmailCode")
+    suspend fun verifyEmailCode(
+        @Query("email") email: String,
+        @Query("code") code: String
+    ): NetworkResponse<Boolean>
 }

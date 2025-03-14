@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class User(
-    val username: String,
-    val password: String
+    val email: String,
+    val password: String,
+    val nickname: String = "" // 注册时使用，登录时可为空
 ) 
