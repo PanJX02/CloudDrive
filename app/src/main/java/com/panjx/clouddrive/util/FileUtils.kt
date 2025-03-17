@@ -1,5 +1,6 @@
 package com.panjx.clouddrive.util
 
+// 为了支持Keccak-256，引入Bouncy Castle库
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
@@ -9,6 +10,7 @@ import android.webkit.MimeTypeMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import org.bouncycastle.jcajce.provider.digest.Keccak
 import java.io.InputStream
 import java.security.MessageDigest
 import java.text.DecimalFormat
@@ -151,18 +153,79 @@ object FileUtils {
                 Pair(hash, duration)
             }
             
+            // 添加SHA-512哈希计算
+            val sha512Job = async(Dispatchers.IO) {
+                var startTime = System.currentTimeMillis()
+                var hash = ""
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val digest = MessageDigest.getInstance("SHA-512")
+                    val buffer = ByteArray(HASH_BUFFER_SIZE)
+                    var bytesRead: Int
+                    var totalBytesRead = 0L
+                    var lastProgressUpdate = 0L
+                    
+                    while (inputStream.read(buffer).also { bytesRead = it } > 0) {
+                        digest.update(buffer, 0, bytesRead)
+                        
+                        totalBytesRead += bytesRead
+                        if (fileSize > 0 && totalBytesRead - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
+                            Log.d("FileUtils", "SHA-512计算进度: ${(totalBytesRead * 100 / fileSize)}%")
+                            lastProgressUpdate = totalBytesRead
+                        }
+                    }
+                    
+                    hash = digest.digest().joinToString("") { "%02x".format(it) }
+                }
+                val duration = System.currentTimeMillis() - startTime
+                Pair(hash, duration)
+            }
+            
+            // 添加Keccak-256哈希计算（以太坊使用的哈希算法）
+            val keccak256Job = async(Dispatchers.IO) {
+                var startTime = System.currentTimeMillis()
+                var hash = ""
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val digest = Keccak.Digest256()
+                    val buffer = ByteArray(HASH_BUFFER_SIZE)
+                    var bytesRead: Int
+                    var totalBytesRead = 0L
+                    var lastProgressUpdate = 0L
+                    
+                    while (inputStream.read(buffer).also { bytesRead = it } > 0) {
+                        digest.update(buffer, 0, bytesRead)
+                        
+                        totalBytesRead += bytesRead
+                        if (fileSize > 0 && totalBytesRead - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
+                            Log.d("FileUtils", "Keccak-256计算进度: ${(totalBytesRead * 100 / fileSize)}%")
+                            lastProgressUpdate = totalBytesRead
+                        }
+                    }
+                    
+                    hash = digest.digest().joinToString("") { "%02x".format(it) }
+                }
+                val duration = System.currentTimeMillis() - startTime
+                Pair(hash, duration)
+            }
+            
             // 等待所有哈希计算完成并收集结果
             val startTime = System.currentTimeMillis()
             val md5Result = md5Job.await()
             val sha1Result = sha1Job.await()
             val sha256Result = sha256Job.await()
+            val sha512Result = sha512Job.await()
+            val keccak256Result = keccak256Job.await()
             val totalDuration = System.currentTimeMillis() - startTime
             
             results["md5"] = md5Result
             results["sha1"] = sha1Result 
             results["sha256"] = sha256Result
+            results["sha512"] = sha512Result
+            results["keccak256"] = keccak256Result
             
-            Log.d("FileUtils", "文件大小: ${formatFileSize(fileSize)}, 总耗时: ${totalDuration}ms, MD5: ${md5Result.second}ms, SHA-1: ${sha1Result.second}ms, SHA-256: ${sha256Result.second}ms")
+            Log.d("FileUtils", "文件大小: ${formatFileSize(fileSize)}, 总耗时: ${totalDuration}ms, " +
+                    "MD5: ${md5Result.second}ms, SHA-1: ${sha1Result.second}ms, " +
+                    "SHA-256: ${sha256Result.second}ms, SHA-512: ${sha512Result.second}ms, " +
+                    "Keccak-256: ${keccak256Result.second}ms")
             
         } catch (e: Exception) {
             Log.e("FileUtils", "计算哈希值时出错: ${e.message}")

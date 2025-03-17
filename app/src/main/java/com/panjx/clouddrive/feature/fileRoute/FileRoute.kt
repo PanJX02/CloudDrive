@@ -188,6 +188,8 @@ fun FileScreen(
         val md5Data = fileHashes["md5"]
         val sha1Data = fileHashes["sha1"]
         val sha256Data = fileHashes["sha256"]
+        val sha512Data = fileHashes["sha512"]
+        val keccak256Data = fileHashes["keccak256"]
         
         FileInfoDialog(
             fileName = selectedFileInfo["name"] as? String ?: "未知文件",
@@ -203,6 +205,10 @@ fun FileScreen(
             sha1Time = sha1Data?.second ?: 0,
             sha256Hash = sha256Data?.first ?: "",
             sha256Time = sha256Data?.second ?: 0,
+            sha512Hash = sha512Data?.first ?: "",
+            sha512Time = sha512Data?.second ?: 0,
+            keccak256Hash = keccak256Data?.first ?: "",
+            keccak256Time = keccak256Data?.second ?: 0,
             isCalculatingHashes = isCalculatingHashes,
             onDismiss = { showFileInfoDialog = false },
             onConfirm = {

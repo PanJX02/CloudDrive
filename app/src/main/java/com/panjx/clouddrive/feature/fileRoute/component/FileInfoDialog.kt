@@ -41,6 +41,10 @@ fun FileInfoDialog(
     sha1Time: Long = 0,
     sha256Hash: String = "",
     sha256Time: Long = 0,
+    sha512Hash: String = "",
+    sha512Time: Long = 0,
+    keccak256Hash: String = "",
+    keccak256Time: Long = 0,
     isCalculatingHashes: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
@@ -160,8 +164,7 @@ fun FileInfoDialog(
                         Text(
                             text = md5Hash,
                             style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Visible
                         )
                     }
                     
@@ -177,8 +180,7 @@ fun FileInfoDialog(
                         Text(
                             text = sha1Hash,
                             style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Visible
                         )
                     }
                     
@@ -194,8 +196,41 @@ fun FileInfoDialog(
                         Text(
                             text = sha256Hash,
                             style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Visible
+                        )
+                    }
+                    
+                    // 添加SHA-512哈希值显示
+                    if (sha512Hash.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(SpaceSmall))
+                        
+                        Text(
+                            text = "SHA512 ${if(sha512Time > 0) "(${sha512Time}ms)" else ""}：",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Text(
+                            text = sha512Hash,
+                            style = MaterialTheme.typography.bodySmall,
+                            overflow = TextOverflow.Visible
+                        )
+                    }
+                    
+                    // 添加Keccak-256哈希值显示
+                    if (keccak256Hash.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(SpaceSmall))
+                        
+                        Text(
+                            text = "Keccak256 ${if(keccak256Time > 0) "(${keccak256Time}ms)" else ""}：",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Text(
+                            text = keccak256Hash,
+                            style = MaterialTheme.typography.bodySmall,
+                            overflow = TextOverflow.Visible
                         )
                     }
                 }

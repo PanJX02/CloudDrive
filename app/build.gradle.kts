@@ -76,6 +76,9 @@ dependencies {
     kapt(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.qiniu.android.sdk)
+    
+    // 添加BouncyCastle库的依赖，用于支持Keccak-256哈希算法
+    implementation("org.bouncycastle:bcprov-jdk15on:1.70")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
