@@ -2,7 +2,6 @@ package com.panjx.clouddrive.core.network.retrofit
 
 import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.core.modle.request.User
-import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
 import retrofit2.http.Body
@@ -23,21 +22,17 @@ interface MyNetworkApiService {
         @Query(value="id") id:String
     ):NetworkResponse<File>
 
-//    //登录
-//    @POST("/login")
-//    suspend fun login(
-//        @Body data: User
-//    ):NetworkResponse<Session>
-    @POST("login")
+    // 登录
+    @POST("auth/tokens")
     suspend fun login(
         @Body data: User
-    ): NetworkResponse<LoginData>
+    ): NetworkResponse<String>
     
     // 注册
-    @POST("register")
+    @POST("users")
     suspend fun register(
         @Body data: User
-    ): NetworkResponse<LoginData>
+    ): NetworkResponse<String>
     
     // 发送邮箱验证码
     @POST("sendEmailVerifyCode")

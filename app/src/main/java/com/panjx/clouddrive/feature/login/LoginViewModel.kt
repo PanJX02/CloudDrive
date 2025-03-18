@@ -47,14 +47,14 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Initial)
     val loginState: StateFlow<LoginState> = _loginState
 
-    private val _email = MutableStateFlow("")
-    val email: StateFlow<String> = _email
+    private val _username = MutableStateFlow("")
+    val username: StateFlow<String> = _username
 
     private val _password = MutableStateFlow("")
     val password: StateFlow<String> = _password
 
-    fun onEmailChange(newEmail: String) {
-        _email.value = newEmail
+    fun onUsernameChange(newUsername: String) {
+        _username.value = newUsername
     }
 
     fun onPasswordChange(newPassword: String) {
@@ -64,21 +64,16 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     fun login() {
         viewModelScope.launch {
             try {
-                if (_email.value.isBlank() || _password.value.isBlank()) {
-                    _loginState.value = LoginState.Error("邮箱和密码不能为空")
-                    return@launch
-                }
-                
-                if (!isValidEmail(_email.value)) {
-                    _loginState.value = LoginState.Error("请输入有效的邮箱地址")
+                if (_username.value.isBlank() || _password.value.isBlank()) {
+                    _loginState.value = LoginState.Error("用户名和密码不能为空")
                     return@launch
                 }
 
-                val user = User(_email.value, _password.value)
+                val user = User(_username.value, _password.value)
                 val response = networkApiService.login(user)
                 if (response.code == 1) {
-                    response.data?.let { loginData ->
-                        userPreferences.setLoggedIn(true, _email.value, loginData.token)
+                    response.data?.let { token ->
+                        userPreferences.setLoggedIn(true, _username.value, token)
                         _loginState.value = LoginState.Success
                     } ?: run {
                         _loginState.value = LoginState.Error("登录数据为空")
@@ -90,11 +85,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 _loginState.value = LoginState.Error("网络错误：${e.message}")
             }
         }
-    }
-    
-    private fun isValidEmail(email: String): Boolean {
-        val emailRegex = """^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$""".toRegex()
-        return email.matches(emailRegex)
     }
 }
 

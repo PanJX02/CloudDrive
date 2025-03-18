@@ -31,7 +31,7 @@ fun LoginRoute(
     viewModel: LoginViewModel = viewModel()
 ) {
     val loginState by viewModel.loginState.collectAsState()
-    val email by viewModel.email.collectAsState()
+    val username by viewModel.username.collectAsState()
     val password by viewModel.password.collectAsState()
 
     LaunchedEffect(loginState) {
@@ -41,9 +41,9 @@ fun LoginRoute(
     }
 
     LoginScreen(
-        email = email,
+        username = username,
         password = password,
-        onEmailChange = viewModel::onEmailChange,
+        onUsernameChange = viewModel::onUsernameChange,
         onPasswordChange = viewModel::onPasswordChange,
         onLoginClick = viewModel::login,
         onRegisterClick = toRegister,
@@ -53,9 +53,9 @@ fun LoginRoute(
 
 @Composable
 fun LoginScreen(
-    email: String,
+    username: String,
     password: String,
-    onEmailChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
     onRegisterClick: () -> Unit,
@@ -80,9 +80,9 @@ fun LoginScreen(
             )
 
             OutlinedTextField(
-                value = email,
-                onValueChange = onEmailChange,
-                label = { Text("邮箱") },
+                value = username,
+                onValueChange = onUsernameChange,
+                label = { Text("用户名") },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,

@@ -1,10 +1,10 @@
 package com.panjx.clouddrive.core.network.datasource
 
+import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.panjx.clouddrive.core.config.Config
 import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.core.modle.request.User
-import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
 import com.panjx.clouddrive.core.network.di.NetworkModule
@@ -37,26 +37,15 @@ class MyRetrofitDatasource(private val userPreferences: UserPreferences) {
 
     suspend fun login(
         email: String, password: String
-    ): NetworkResponse<LoginData> {
+    ): NetworkResponse<String> {
         return service.login(User(email, password))
     }
     
     suspend fun register(
-        email: String, password: String, nickname: String, verifyCode: String = ""
-    ): NetworkResponse<LoginData> {
-        // 在实际实现中，应该将验证码作为参数传递给后端API
-        // 如果验证码参数没有集成在 User 类中，可以使用单独的 API 调用或添加请求头
-        
-        // 例如：
-        // val headers = HashMap<String, String>()
-        // headers["verify-code"] = verifyCode
-        // return service.registerWithHeaders(User(email, password, nickname), headers)
-        
-        // 或者创建新的请求模型包含验证码
-        // return service.register(RegisterRequest(email, password, nickname, verifyCode))
-        
-        // 这里先使用简单实现
-        return service.register(User(email, password, nickname))
+        username: String, password: String
+    ): NetworkResponse<String> {
+        Log.d("MyRetrofitDatasource", "register: $username, $password")
+        return service.register(User(username, password))
     }
     
     suspend fun sendEmailVerifyCode(email: String): NetworkResponse<Nothing> {

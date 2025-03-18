@@ -2,7 +2,6 @@ package com.panjx.clouddrive.feature.register
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,11 +31,9 @@ fun RegisterRoute(
     viewModel: RegisterViewModel = viewModel()
 ) {
     val registerState by viewModel.registerState.collectAsState()
-    val email by viewModel.email.collectAsState()
+    val username by viewModel.username.collectAsState()
     val password by viewModel.password.collectAsState()
     val confirmPassword by viewModel.confirmPassword.collectAsState()
-    val nickname by viewModel.nickname.collectAsState()
-    val verifyCode by viewModel.verifyCode.collectAsState()
 
     LaunchedEffect(registerState) {
         if (registerState is RegisterState.Success) {
@@ -45,17 +42,12 @@ fun RegisterRoute(
     }
 
     RegisterScreen(
-        email = email,
+        username = username,
         password = password,
         confirmPassword = confirmPassword,
-        nickname = nickname,
-        verifyCode = verifyCode,
-        onEmailChange = viewModel::onEmailChange,
+        onUsernameChange = viewModel::onUsernameChange,
         onPasswordChange = viewModel::onPasswordChange,
         onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
-        onNicknameChange = viewModel::onNicknameChange,
-        onVerifyCodeChange = viewModel::onVerifyCodeChange,
-        onSendVerifyCodeClick = viewModel::sendVerifyCode,
         onRegisterClick = viewModel::register,
         onLoginClick = toLogin,
         registerState = registerState
@@ -64,23 +56,17 @@ fun RegisterRoute(
 
 @Composable
 fun RegisterScreen(
-    email: String,
+    username: String,
     password: String,
     confirmPassword: String,
-    nickname: String,
-    verifyCode: String,
-    onEmailChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
-    onNicknameChange: (String) -> Unit,
-    onVerifyCodeChange: (String) -> Unit,
-    onSendVerifyCodeClick: () -> Unit,
     onRegisterClick: () -> Unit,
     onLoginClick: () -> Unit,
     registerState: RegisterState
 ) {
     val errorMessage = if (registerState is RegisterState.Error) (registerState as RegisterState.Error).message else null
-    val isCodeSent = registerState is RegisterState.VerifyCodeSent || registerState is RegisterState.EmailVerified
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -100,80 +86,11 @@ fun RegisterScreen(
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
-            // 邮箱输入
+            // 用户名输入
             OutlinedTextField(
-                value = email,
-                onValueChange = onEmailChange,
-                label = { Text("邮箱") },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            )
-            
-            // 验证码输入
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = verifyCode,
-                    onValueChange = onVerifyCodeChange,
-                    label = { Text("验证码") },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        cursorColor = MaterialTheme.colorScheme.primary,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier
-                        .weight(0.65f)
-                        .padding(bottom = 16.dp)
-                )
-                
-                Button(
-                    onClick = onSendVerifyCodeClick,
-                    enabled = email.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    modifier = Modifier
-                        .weight(0.3f)
-                        .height(55.dp)
-                        .padding(start = 8.dp, bottom = 16.dp)
-                ) {
-                    Text("发送验证码")
-                }
-            }
-            
-            if (isCodeSent) {
-                Text(
-                    text = "验证码已发送",
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-            
-            // 昵称输入
-            OutlinedTextField(
-                value = nickname,
-                onValueChange = onNicknameChange,
-                label = { Text("昵称") },
+                value = username,
+                onValueChange = onUsernameChange,
+                label = { Text("用户名") },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,

@@ -4,9 +4,6 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.panjx.clouddrive.data.UserPreferences
-import com.panjx.clouddrive.feature.login.LOGIN_ROUTE
-import com.panjx.clouddrive.feature.splash.SPLASH_ROUTE
-import com.panjx.clouddrive.feature.splash.SplashRoute
 
 const val MAIN_ROUTE = "main"
 
@@ -20,8 +17,8 @@ fun NavController.navigateToMain(): Unit {
         launchSingleTop = true
 
         // 清空栈(栈内所有页面)
-        popUpTo(SPLASH_ROUTE){
-            inclusive = true //是否包含当前页面
+        popUpTo(0) { // 使用0表示清除整个导航栈
+            inclusive = false // 不包含当前页面
         }
     }
 }

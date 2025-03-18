@@ -4,11 +4,8 @@ import kotlinx.serialization.Serializable
 
 // 解析网络响应
 @Serializable
-data class NetworkResponse<T> (
-    // 状态码
-    val code: Int? = null,
-    // 消息
+data class NetworkResponse<T>(
+    val code: Int,
     val message: String? = null,
-    // 数据
     val data: T? = null
 )
