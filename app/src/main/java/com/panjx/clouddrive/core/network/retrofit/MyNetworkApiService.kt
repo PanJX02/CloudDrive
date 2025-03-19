@@ -7,13 +7,15 @@ import com.panjx.clouddrive.core.modle.response.NetworkResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface MyNetworkApiService {
-    // 获取文件列表
-    @GET("files/page")
-    suspend fun files(
-        @Query("file_pid") filePid: String? = null
+    
+    // 根据文件夹ID获取文件列表
+    @GET("folders/{folderId}/files")
+    suspend fun getFilesByFolderId(
+        @Path("folderId") folderId: String
     ):NetworkResponse<NetworkPageData<File>>
 
     // 获取文件详情

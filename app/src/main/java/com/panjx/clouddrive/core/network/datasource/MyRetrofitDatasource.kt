@@ -23,9 +23,10 @@ class MyRetrofitDatasource(private val userPreferences: UserPreferences) {
         .build()
         .create(MyNetworkApiService::class.java)
 
-    // 获取文件列表
-    suspend fun files(): NetworkResponse<NetworkPageData<File>>{
-        return service.files()
+
+    // 根据文件夹ID获取文件列表
+    suspend fun getFilesByFolderId(folderId: String): NetworkResponse<NetworkPageData<File>> {
+        return service.getFilesByFolderId(folderId)
     }
 
     // 获取文件详情

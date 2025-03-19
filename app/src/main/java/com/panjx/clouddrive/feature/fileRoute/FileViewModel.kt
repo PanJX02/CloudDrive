@@ -23,13 +23,13 @@ class FileViewModel: ViewModel() {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
     
-    // 当前目录ID，"0"表示根目录
-    private val _currentDirId = MutableStateFlow("0")
-    val currentDirId: StateFlow<String> = _currentDirId
+    // 当前目录ID，0表示根目录
+    private val _currentDirId = MutableStateFlow(0L)
+    val currentDirId: StateFlow<Long> = _currentDirId
     
     // 当前路径，用于展示面包屑导航
-    private val _currentPath = MutableStateFlow<List<Pair<String, String>>>(listOf(Pair("0", "根目录")))
-    val currentPath: StateFlow<List<Pair<String, String>>> = _currentPath
+    private val _currentPath = MutableStateFlow<List<Pair<Long, String>>>(listOf(Pair(0L, "根目录")))
+    val currentPath: StateFlow<List<Pair<Long, String>>> = _currentPath
 
     init {
         loadData()
@@ -40,7 +40,7 @@ class FileViewModel: ViewModel() {
     }
     
     // 加载特定目录的内容
-    fun loadDirectoryContent(dirId: String, dirName: String? = null) {
+    fun loadDirectoryContent(dirId: Long, dirName: String? = null) {
         viewModelScope.launch {
             Log.d("FileViewModel", "loadDirectoryContent: 开始加载目录 $dirId 的内容")
             
@@ -54,21 +54,21 @@ class FileViewModel: ViewModel() {
             try {
                 // 暂时使用本地模拟数据
                 val allFiles = FilePreviewParameterData.FILES
-                val filteredFiles = if (dirId == "0") {
-                    // 根目录只显示parentId为"0"的文件
-                    allFiles.filter { it.parentId == "0" }
+                val filteredFiles = if (dirId == 0L) {
+                    // 根目录只显示filePid为0的文件
+                    allFiles.filter { it.filePid == 0L }
                 } else {
-                    // 子目录显示parentId匹配的文件
-                    allFiles.filter { it.parentId == dirId }
+                    // 子目录显示filePid匹配的文件
+                    allFiles.filter { it.filePid == dirId }
                 }
                 
                 // 更新当前目录ID
                 _currentDirId.value = dirId
                 
                 // 更新路径
-                if (dirId == "0") {
+                if (dirId == 0L) {
                     // 重置到根目录
-                    _currentPath.value = listOf(Pair("0", "根目录"))
+                    _currentPath.value = listOf(Pair(0L, "根目录"))
                 } else if (dirName != null) {
                     // 如果提供了目录名，添加到路径中
                     val newPath = _currentPath.value.toMutableList()

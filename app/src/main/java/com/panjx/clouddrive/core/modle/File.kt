@@ -7,26 +7,35 @@ import kotlinx.serialization.Serializable
  *
  * 用于表示云存储系统中的文件或目录元数据信息
  *
- * @property id 文件唯一标识符，通常为UUID格式
- * @property name 文件/目录名称（包含扩展名）
- * @property size 文件大小（字节单位），目录时通常为0
- * @property type 文件类型标识（如：text/plain, image/png），目录可设为"directory"
- * @property parentId 所属父目录ID，根目录时为空字符串
- * @property path 文件完整存储路径（虚拟路径，非物理路径）
+ * @property id 文件记录唯一标识符
+ * @property userId 用户ID
+ * @property fileId 文件ID
+ * @property fileSHA256 文件SHA256值
+ * @property fileName 文件名称
+ * @property fileExtension 文件扩展名
+ * @property fileCategory 文件类别
+ * @property fileSize 文件大小
+ * @property filePid 父文件ID
+ * @property folderType 文件夹类型
+ * @property deleteFlag 删除标记
+ * @property recoveryTime 恢复时间
  * @property createTime 创建时间戳（毫秒级）
- * @property updateTime 最后修改时间戳（毫秒级）
- * @property isDir 是否为目录标识，true表示目录，false表示文件
- * @property isSelected 选择状态（主要用于UI交互），默认未选中
+ * @property lastUpdateTime 最后更新时间戳（毫秒级）
  */
 @Serializable
 data class File(
-    val id: String,
-    val name: String,
-    val size: Long,
-    val type: String,
-    val parentId: String,
-    val path: String,
+    val id: Long,
+    val userId: Long,
+    val fileId: Long,
+    val fileSHA256: String?,
+    val fileName: String,
+    val fileExtension: String?,
+    val fileCategory: String?,
+    val fileSize: String?,
+    val filePid: Long,
+    val folderType: Int,
+    val deleteFlag: Int,
+    val recoveryTime: Long,
     val createTime: Long,
-    val updateTime: Long,
-    val isDir: Boolean,
+    val lastUpdateTime: Long
 )

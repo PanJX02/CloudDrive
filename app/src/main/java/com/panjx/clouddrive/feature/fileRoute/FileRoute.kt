@@ -122,7 +122,7 @@ fun FileScreen(
     var showSearchBar by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val fileList = remember(files) { mutableStateListOf(*files.toTypedArray()) }
-    val selectedFiles = remember { mutableStateListOf<String>() }
+    val selectedFiles = remember { mutableStateListOf<Long>() }
     val currentPath by viewModel.currentPath.collectAsState()
     val currentDirId by viewModel.currentDirId.collectAsState()
     
@@ -171,7 +171,7 @@ fun FileScreen(
         viewModel.navigateUp()
     }
 
-    fun handleSelectChange(fileId: String, isSelected: Boolean) {
+    fun handleSelectChange(fileId: Long, isSelected: Boolean) {
         if (isSelected) {
             selectedFiles.add(fileId)
         } else {

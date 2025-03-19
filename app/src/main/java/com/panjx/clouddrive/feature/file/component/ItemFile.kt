@@ -32,7 +32,7 @@ fun ItemFile(
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     onSelectChange: (Boolean) -> Unit,
-    onFolderClick: ((String, String) -> Unit)? = null // 添加文件夹点击回调
+    onFolderClick: ((Long, String) -> Unit)? = null // 修改参数类型
 ) {
     Log.d("Composable", "ItemFile")
     Row(
@@ -40,22 +40,22 @@ fun ItemFile(
             .fillMaxWidth()
             .clickable {
                 // 如果是文件夹且提供了点击回调，则触发回调
-                if ((data.type == "Folder" || data.isDir) && onFolderClick != null) {
-                    onFolderClick(data.id, data.name)
+                if (data.folderType == 1 && onFolderClick != null) {
+                    onFolderClick(data.id, data.fileName)
                 }
             }
             .padding(horizontal = 15.dp)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (data.type == "Folder" || data.isDir){
+        if (data.folderType == 1) {
             Icon(
                 imageVector = Icons.Filled.Folder,
                 contentDescription = "Folder",
                 modifier = Modifier
                     .size(35.dp)
             )
-        }else{
+        } else {
             Icon(
                 imageVector = Icons.Filled.FileCopy,
                 contentDescription = "OtherFile",
@@ -70,12 +70,12 @@ fun ItemFile(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = data.name,
+                text = data.fileName,
                 style = MaterialTheme.typography.bodyLarge,
             )
             SpaceSmall()
             Text(
-                text = DateTimeUtils.formatTimestamp(data.updateTime), // 调用工具类
+                text = DateTimeUtils.formatTimestamp(data.lastUpdateTime), // 修改为使用lastUpdateTime
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

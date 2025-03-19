@@ -33,7 +33,7 @@ fun FileInfoDialog(
     fileSizeBytes: String = "",
     fileType: String,
     fileExtension: String = "",
-    uploadFolderId: String = "",
+    uploadFolderId: Long = 0,
     uploadFolderName: String = "",
     md5Hash: String = "",
     md5Time: Long = 0,
