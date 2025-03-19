@@ -27,7 +27,7 @@ object FilePreviewParameterData {
         fileId = 0,
         fileSHA256 = "123456789",
         fileName = "个人资料",
-        fileExtension = ".doc",
+        fileExtension = "doc",
         fileCategory = "null",
         fileSize = 12345L,
         filePid = 0,

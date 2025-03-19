@@ -78,7 +78,7 @@ dependencies {
     implementation(libs.qiniu.android.sdk)
     
     // 添加BouncyCastle库的依赖，用于支持Keccak-256哈希算法
-    implementation("org.bouncycastle:bcprov-jdk15on:1.70")
+    implementation(libs.bcprov.jdk15on)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -61,7 +61,11 @@ fun ItemFile(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = data.fileName,
+                text = if (data.folderType != 1 && !data.fileExtension.isNullOrEmpty()) {
+                    "${data.fileName}.${data.fileExtension}"
+                } else {
+                    data.fileName
+                },
                 style = MaterialTheme.typography.bodyLarge,
             )
             SpaceSmall()
