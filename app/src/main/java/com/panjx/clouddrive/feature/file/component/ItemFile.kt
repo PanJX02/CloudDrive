@@ -23,7 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.panjx.clouddrive.core.design.theme.SpaceSmall
 import com.panjx.clouddrive.core.modle.File
-import com.panjx.clouddrive.core.ui.FilePreviewParameterData.FILE
+import com.panjx.clouddrive.core.ui.FilePreviewParameterData.FILE2
 import com.panjx.clouddrive.util.DateTimeUtils
 
 @Composable
@@ -108,7 +108,7 @@ fun ItemFile(
 @Composable
 fun ItemFilePreview() {
     ItemFile(
-        data = FILE,
+        data = FILE2,
         isSelected = false, // 预览时默认未选中
         onSelectChange = {}
     )

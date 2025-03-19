@@ -31,7 +31,7 @@ data class File(
     val fileName: String,
     val fileExtension: String?,
     val fileCategory: String?,
-    val fileSize: String?,
+    val fileSize: Long,
     val filePid: Long,
     val folderType: Int,
     val deleteFlag: Int,
