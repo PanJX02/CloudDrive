@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 // 定义UI状态
 sealed class FileUiState {
     object Loading : FileUiState()
+    object ListLoading : FileUiState() // 新增状态：只有文件列表在加载
     data class Success(val files: List<File>) : FileUiState()
     data class Error(val message: String) : FileUiState()
 }
@@ -49,44 +50,46 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
         viewModelScope.launch {
             Log.d("FileViewModel", "loadDirectoryContent: 开始加载目录 $dirId 的内容")
             
-            // 如果是初始加载，显示Loading状态，否则使用isRefreshing
-            if (_uiState.value !is FileUiState.Success) {
+            // 区分初始加载和文件夹导航
+            val isInitialLoad = _uiState.value !is FileUiState.Success
+            
+            // 如果是初始加载，显示全屏Loading；否则只加载列表部分
+            if (isInitialLoad) {
                 _uiState.value = FileUiState.Loading
             } else {
-                _isRefreshing.value = true
+                _uiState.value = FileUiState.ListLoading
             }
+            
+            // 立即更新路径
+            if (dirId == 0L) {
+                // 重置到根目录
+                _currentPath.value = listOf(Pair(0L, "根目录"))
+            } else if (dirName != null) {
+                // 如果提供了目录名，添加到路径中
+                val newPath = _currentPath.value.toMutableList()
+                // 检查是否已经存在该目录，防止重复添加
+                if (newPath.none { it.first == dirId }) {
+                    newPath.add(Pair(dirId, dirName))
+                    _currentPath.value = newPath
+                }
+            } else {
+                // 处理点击面包屑导航已有路径的情况
+                // 查找点击的路径项在当前路径中的位置
+                val existingPathIndex = _currentPath.value.indexOfFirst { it.first == dirId }
+                if (existingPathIndex != -1) {
+                    // 如果找到了，截断路径至该位置（保留该项）
+                    _currentPath.value = _currentPath.value.subList(0, existingPathIndex + 1)
+                }
+            }
+            
+            // 更新当前目录ID
+            _currentDirId.value = dirId
 
             try {
                 // 使用网络API获取数据
                 val response = networkDataSource.getFilesByFolderId(dirId.toString())
                 if (response.code == 1 && response.data != null) {
                     val files = response.data.list ?: emptyList()
-                    
-                    // 更新当前目录ID
-                    _currentDirId.value = dirId
-                    
-                    // 更新路径
-                    if (dirId == 0L) {
-                        // 重置到根目录
-                        _currentPath.value = listOf(Pair(0L, "根目录"))
-                    } else if (dirName != null) {
-                        // 如果提供了目录名，添加到路径中
-                        val newPath = _currentPath.value.toMutableList()
-                        // 检查是否已经存在该目录，防止重复添加
-                        if (newPath.none { it.first == dirId }) {
-                            newPath.add(Pair(dirId, dirName))
-                            _currentPath.value = newPath
-                        }
-                    } else {
-                        // 处理点击面包屑导航已有路径的情况
-                        // 查找点击的路径项在当前路径中的位置
-                        val existingPathIndex = _currentPath.value.indexOfFirst { it.first == dirId }
-                        if (existingPathIndex != -1) {
-                            // 如果找到了，截断路径至该位置（保留该项）
-                            _currentPath.value = _currentPath.value.subList(0, existingPathIndex + 1)
-                        }
-                    }
-                    
                     _uiState.value = FileUiState.Success(files)
                 } else {
                     throw Exception(response.message ?: "请求失败")

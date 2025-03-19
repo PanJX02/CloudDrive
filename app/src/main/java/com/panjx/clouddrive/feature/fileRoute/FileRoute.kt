@@ -106,7 +106,16 @@ fun FileRoute(
         is FileUiState.Success -> {
             FileScreen(
                 files = (uiState as FileUiState.Success).files,
-                viewModel = viewModel
+                viewModel = viewModel,
+                isListLoading = false
+            )
+        }
+        is FileUiState.ListLoading -> {
+            // 列表加载状态，显示上一次的文件列表，但显示加载指示器
+            FileScreen(
+                files = emptyList(), // 空列表
+                viewModel = viewModel,
+                isListLoading = true
             )
         }
     }
@@ -117,7 +126,8 @@ fun FileRoute(
 fun FileScreen(
     toSearch: () -> Unit={},
     files: List<File> = listOf(),
-    viewModel: FileViewModel = viewModel()
+    viewModel: FileViewModel = viewModel(),
+    isListLoading: Boolean = false
 ) {
     var showSearchBar by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -402,23 +412,35 @@ fun FileScreen(
                 onRefresh = { viewModel.loadData()},
                 modifier = Modifier.fillMaxSize()
             ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .padding(bottom = if (selectedFiles.isNotEmpty()) 40.dp else 0.dp)
-                ) {
-                    items(fileList, key = { it.id }) { file ->
-                        ItemFile(
-                            data = file,
-                            isSelected = selectedFiles.contains(file.id),
-                            onSelectChange = { isSelected ->
-                                handleSelectChange(file.id, isSelected)
-                            },
-                            onFolderClick = { folderId, folderName ->
-                                // 点击文件夹，加载文件夹内容
-                                viewModel.loadDirectoryContent(folderId, folderName)
-                            }
-                        )
+                if (isListLoading) {
+                    // 显示列表加载状态
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .padding(bottom = if (selectedFiles.isNotEmpty()) 40.dp else 0.dp)
+                    ) {
+                        items(fileList, key = { it.id }) { file ->
+                            ItemFile(
+                                data = file,
+                                isSelected = selectedFiles.contains(file.id),
+                                onSelectChange = { isSelected ->
+                                    handleSelectChange(file.id, isSelected)
+                                },
+                                onFolderClick = { folderId, folderName ->
+                                    // 点击文件夹，加载文件夹内容
+                                    viewModel.loadDirectoryContent(folderId, folderName)
+                                }
+                            )
+                        }
                     }
                 }
             }
