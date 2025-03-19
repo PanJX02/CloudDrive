@@ -1,10 +1,12 @@
 package com.panjx.clouddrive.feature.fileRoute
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.panjx.clouddrive.core.modle.File
-import com.panjx.clouddrive.core.ui.FilePreviewParameterData
+import com.panjx.clouddrive.core.network.datasource.MyRetrofitDatasource
+import com.panjx.clouddrive.data.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -16,7 +18,10 @@ sealed class FileUiState {
     data class Error(val message: String) : FileUiState()
 }
 
-class FileViewModel: ViewModel() {
+class FileViewModel(application: Application): AndroidViewModel(application) {
+    private val userPreferences = UserPreferences(application)
+    private val networkDataSource = MyRetrofitDatasource(userPreferences)
+    
     private val _uiState = MutableStateFlow<FileUiState>(FileUiState.Loading)
     val uiState: StateFlow<FileUiState> = _uiState
     
@@ -52,42 +57,40 @@ class FileViewModel: ViewModel() {
             }
 
             try {
-                // 暂时使用本地模拟数据
-                val allFiles = FilePreviewParameterData.FILES
-                val filteredFiles = if (dirId == 0L) {
-                    // 根目录只显示filePid为0的文件
-                    allFiles.filter { it.filePid == 0L }
-                } else {
-                    // 子目录显示filePid匹配的文件
-                    allFiles.filter { it.filePid == dirId }
-                }
-                
-                // 更新当前目录ID
-                _currentDirId.value = dirId
-                
-                // 更新路径
-                if (dirId == 0L) {
-                    // 重置到根目录
-                    _currentPath.value = listOf(Pair(0L, "根目录"))
-                } else if (dirName != null) {
-                    // 如果提供了目录名，添加到路径中
-                    val newPath = _currentPath.value.toMutableList()
-                    // 检查是否已经存在该目录，防止重复添加
-                    if (newPath.none { it.first == dirId }) {
-                        newPath.add(Pair(dirId, dirName))
-                        _currentPath.value = newPath
+                // 使用网络API获取数据
+                val response = networkDataSource.getFilesByFolderId(dirId.toString())
+                if (response.code == 1 && response.data != null) {
+                    val files = response.data.list ?: emptyList()
+                    
+                    // 更新当前目录ID
+                    _currentDirId.value = dirId
+                    
+                    // 更新路径
+                    if (dirId == 0L) {
+                        // 重置到根目录
+                        _currentPath.value = listOf(Pair(0L, "根目录"))
+                    } else if (dirName != null) {
+                        // 如果提供了目录名，添加到路径中
+                        val newPath = _currentPath.value.toMutableList()
+                        // 检查是否已经存在该目录，防止重复添加
+                        if (newPath.none { it.first == dirId }) {
+                            newPath.add(Pair(dirId, dirName))
+                            _currentPath.value = newPath
+                        }
+                    } else {
+                        // 处理点击面包屑导航已有路径的情况
+                        // 查找点击的路径项在当前路径中的位置
+                        val existingPathIndex = _currentPath.value.indexOfFirst { it.first == dirId }
+                        if (existingPathIndex != -1) {
+                            // 如果找到了，截断路径至该位置（保留该项）
+                            _currentPath.value = _currentPath.value.subList(0, existingPathIndex + 1)
+                        }
                     }
+                    
+                    _uiState.value = FileUiState.Success(files)
                 } else {
-                    // 处理点击面包屑导航已有路径的情况
-                    // 查找点击的路径项在当前路径中的位置
-                    val existingPathIndex = _currentPath.value.indexOfFirst { it.first == dirId }
-                    if (existingPathIndex != -1) {
-                        // 如果找到了，截断路径至该位置（保留该项）
-                        _currentPath.value = _currentPath.value.subList(0, existingPathIndex + 1)
-                    }
+                    throw Exception(response.message ?: "请求失败")
                 }
-                
-                _uiState.value = FileUiState.Success(filteredFiles)
                 
             } catch (e: Exception) {
                 Log.e("FileViewModel", "加载目录内容失败: ${e.message}")
