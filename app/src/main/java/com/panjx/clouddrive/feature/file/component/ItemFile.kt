@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FileCopy
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Icon
@@ -25,6 +23,7 @@ import com.panjx.clouddrive.core.design.theme.SpaceSmall
 import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.core.ui.FilePreviewParameterData.FILE2
 import com.panjx.clouddrive.util.DateTimeUtils
+import com.panjx.clouddrive.util.FileIconUtils
 
 @Composable
 fun ItemFile(
@@ -48,21 +47,12 @@ fun ItemFile(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (data.folderType == 1) {
-            Icon(
-                imageVector = Icons.Filled.Folder,
-                contentDescription = "Folder",
-                modifier = Modifier
-                    .size(35.dp)
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Filled.FileCopy,
-                contentDescription = "OtherFile",
-                modifier = Modifier
-                    .size(35.dp)
-            )
-        }
+        // 使用工具类获取文件图标
+        Icon(
+            imageVector = FileIconUtils.getFileIcon(data.folderType, data.fileCategory),
+            contentDescription = if (data.folderType == 1) "Folder" else "File",
+            modifier = Modifier.size(35.dp)
+        )
 
         Column(
             modifier = Modifier.weight(1f)
