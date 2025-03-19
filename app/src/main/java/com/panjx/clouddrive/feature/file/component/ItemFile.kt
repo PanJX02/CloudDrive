@@ -24,6 +24,7 @@ import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.core.ui.FilePreviewParameterData.FILE2
 import com.panjx.clouddrive.util.DateTimeUtils
 import com.panjx.clouddrive.util.FileIconUtils
+import com.panjx.clouddrive.util.FileSizeUtils
 
 @Composable
 fun ItemFile(
@@ -64,11 +65,24 @@ fun ItemFile(
                 style = MaterialTheme.typography.bodyLarge,
             )
             SpaceSmall()
-            Text(
-                text = DateTimeUtils.formatTimestamp(data.lastUpdateTime), // 修改为使用lastUpdateTime
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = DateTimeUtils.formatTimestamp(data.lastUpdateTime),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                // 如果不是文件夹，显示文件大小
+                if (data.folderType != 1) {
+                    Text(
+                        text = " · ${FileSizeUtils.formatFileSize(data.fileSize)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
         // 动态切换选中图标
         val icon = if (isSelected) { // 使用参数状态
