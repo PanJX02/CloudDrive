@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -428,18 +429,52 @@ fun FileScreen(
                             .padding(innerPadding)
                             .padding(bottom = if (selectedFiles.isNotEmpty()) 40.dp else 0.dp)
                     ) {
-                        items(fileList, key = { it.id }) { file ->
-                            ItemFile(
-                                data = file,
-                                isSelected = selectedFiles.contains(file.id),
-                                onSelectChange = { isSelected ->
-                                    handleSelectChange(file.id, isSelected)
-                                },
-                                onFolderClick = { folderId, folderName ->
-                                    // 点击文件夹，加载文件夹内容
-                                    viewModel.loadDirectoryContent(folderId, folderName)
+                        if (fileList.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 100.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CreateNewFolder,
+                                            contentDescription = "空文件夹",
+                                            modifier = Modifier.size(60.dp),
+                                            tint = MaterialTheme.colorScheme.outline
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text(
+                                            text = "此文件夹为空",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "点击右下角的 + 按钮添加文件",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
                                 }
-                            )
+                            }
+                        } else {
+                            items(fileList, key = { it.id }) { file ->
+                                ItemFile(
+                                    data = file,
+                                    isSelected = selectedFiles.contains(file.id),
+                                    onSelectChange = { isSelected ->
+                                        handleSelectChange(file.id, isSelected)
+                                    },
+                                    onFolderClick = { folderId, folderName ->
+                                        // 点击文件夹，加载文件夹内容
+                                        viewModel.loadDirectoryContent(folderId, folderName)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
