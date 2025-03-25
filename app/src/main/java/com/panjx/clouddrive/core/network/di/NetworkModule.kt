@@ -45,6 +45,7 @@ object NetworkModule {
     fun providesOkHttpClient(userPreferences: UserPreferences): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(AuthInterceptor(userPreferences))
+            .addInterceptor(ServerSwitchInterceptor()) // 添加服务器切换拦截器
             .connectTimeout(10, TimeUnit.SECONDS)//连接超时
             .writeTimeout(10, TimeUnit.SECONDS)//写超时
             .readTimeout(10, TimeUnit.SECONDS)//读超时

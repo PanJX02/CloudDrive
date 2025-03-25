@@ -37,7 +37,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val retrofit = Retrofit.Builder()
-            .baseUrl(Config.ENDPOINT)
+            .baseUrl(Config.getEndpoint(userPreferences))
             .client(client)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()

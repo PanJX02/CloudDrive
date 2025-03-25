@@ -77,32 +77,37 @@ fun FileRoute(
     viewModel: FileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentPath by viewModel.currentPath.collectAsState()
     
     when (uiState) {
         is FileUiState.Loading -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            // 显示带有TopBar的加载界面
+            FileScreen(
+                files = emptyList(),
+                viewModel = viewModel,
+                isListLoading = true
+            )
         }
         is FileUiState.Error -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = (uiState as FileUiState.Error).message)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { viewModel.loadData() }) {
-                        Text("重试")
+            // 错误界面包装到FileScreen中以显示TopBar
+            FileScreen(
+                files = emptyList(),
+                viewModel = viewModel,
+                isListLoading = false,
+                errorContent = {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(text = (uiState as FileUiState.Error).message)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = { viewModel.loadData() }) {
+                            Text("重试")
+                        }
                     }
                 }
-            }
+            )
         }
         is FileUiState.Success -> {
             FileScreen(
@@ -112,9 +117,8 @@ fun FileRoute(
             )
         }
         is FileUiState.ListLoading -> {
-            // 列表加载状态，显示上一次的文件列表，但显示加载指示器
             FileScreen(
-                files = emptyList(), // 空列表
+                files = emptyList(),
                 viewModel = viewModel,
                 isListLoading = true
             )
@@ -128,7 +132,8 @@ fun FileScreen(
     toSearch: () -> Unit={},
     files: List<File> = listOf(),
     viewModel: FileViewModel = viewModel(),
-    isListLoading: Boolean = false
+    isListLoading: Boolean = false,
+    errorContent: @Composable (() -> Unit)? = null
 ) {
     var showSearchBar by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -422,6 +427,16 @@ fun FileScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
+                    }
+                } else if (errorContent != null) {
+                    // 显示错误内容
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        errorContent()
                     }
                 } else {
                     LazyColumn(

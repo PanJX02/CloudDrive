@@ -17,6 +17,21 @@ class UserPreferences(private val context: Context) {
         private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         private val USERNAME = stringPreferencesKey("username")
         private val TOKEN = stringPreferencesKey("token")
+        private val ENDPOINT_KEY = stringPreferencesKey("endpoint")
+        
+        // 默认后端地址
+        const val DEFAULT_ENDPOINT = "http://8.140.30.175:8080/"
+        
+        // 可选后端地址列表，使用友好名称作为键，实际URL作为值
+        val ENDPOINT_OPTIONS = mapOf(
+            "默认服务器" to "http://8.140.30.175:8080/",
+            "备用服务器1" to "https://api.1216.ink/",
+        )
+        
+        // 根据URL获取友好名称
+        fun getEndpointName(url: String): String {
+            return ENDPOINT_OPTIONS.entries.find { it.value == url }?.key ?: "未知服务器"
+        }
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data
@@ -33,6 +48,11 @@ class UserPreferences(private val context: Context) {
         .map { preferences ->
             preferences[TOKEN] ?: ""
         }
+        
+    val endpoint: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[ENDPOINT_KEY] ?: DEFAULT_ENDPOINT
+        }
 
     suspend fun setLoggedIn(isLoggedIn: Boolean, username: String = "", token: String = "") {
         context.dataStore.edit { preferences ->
@@ -47,6 +67,12 @@ class UserPreferences(private val context: Context) {
             preferences[IS_LOGGED_IN] = false
             preferences[USERNAME] = ""
             preferences[TOKEN] = ""
+        }
+    }
+    
+    suspend fun setEndpoint(endpoint: String) {
+        context.dataStore.edit { preferences ->
+            preferences[ENDPOINT_KEY] = endpoint
         }
     }
 } 
