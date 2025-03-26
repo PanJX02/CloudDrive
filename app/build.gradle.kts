@@ -58,6 +58,10 @@ dependencies {
     implementation(libs.androidx.foundation.layout)
     implementation(libs.accompanist.systemuicontroller)
     implementation(libs.androidx.constraintlayout.compose)
+    
+    // WorkManager - 后台任务
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    
     // 网络请求相关
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)

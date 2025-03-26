@@ -72,8 +72,13 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 val user = User(_username.value, _password.value)
                 val response = networkApiService.login(user)
                 if (response.code == 1) {
-                    response.data?.let { token ->
-                        userPreferences.setLoggedIn(true, _username.value, token)
+                    response.data?.let { loginData ->
+                        userPreferences.setLoggedIn(
+                            isLoggedIn = true, 
+                            username = _username.value, 
+                            accessToken = loginData.accessToken,
+                            refreshToken = loginData.refreshToken
+                        )
                         _loginState.value = LoginState.Success
                     } ?: run {
                         _loginState.value = LoginState.Error("登录数据为空")

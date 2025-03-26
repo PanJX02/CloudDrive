@@ -68,8 +68,13 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
                 // 调用API注册用户
                 val response = dataSource.register(_username.value, _password.value)
                 if (response.code == 1) {
-                    response.data?.let { token ->
-                        userPreferences.setLoggedIn(true, _username.value, token)
+                    response.data?.let { loginData ->
+                        userPreferences.setLoggedIn(
+                            isLoggedIn = true, 
+                            username = _username.value, 
+                            accessToken = loginData.accessToken,
+                            refreshToken = loginData.refreshToken
+                        )
                         _registerState.value = RegisterState.Success
                     } ?: run {
                         _registerState.value = RegisterState.Error("注册数据为空")

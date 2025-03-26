@@ -1,7 +1,9 @@
 package com.panjx.clouddrive.core.network.retrofit
 
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
 import com.panjx.clouddrive.core.modle.request.User
+import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
 import retrofit2.http.Body
@@ -28,13 +30,19 @@ interface MyNetworkApiService {
     @POST("auth/tokens")
     suspend fun login(
         @Body data: User
-    ): NetworkResponse<String>
+    ): NetworkResponse<LoginData>
     
     // 注册
     @POST("users")
     suspend fun register(
         @Body data: User
-    ): NetworkResponse<String>
+    ): NetworkResponse<LoginData>
+    
+    // 刷新token
+    @POST("auth/refresh")
+    suspend fun refreshToken(
+        @Body request: RefreshTokenRequest
+    ): NetworkResponse<LoginData>
     
     // 发送邮箱验证码
     @POST("sendEmailVerifyCode")
