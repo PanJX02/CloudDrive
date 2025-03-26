@@ -1,19 +1,27 @@
 package com.panjx.clouddrive
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
 import com.panjx.clouddrive.core.config.ServerManager
 import com.panjx.clouddrive.core.design.theme.MyAppTheme
 import com.panjx.clouddrive.data.UserPreferences
 import com.panjx.clouddrive.ui.MyApp
+import com.panjx.clouddrive.ui.components.ServerSelectionDialog
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), ServerManager.Companion.ServerConnectionErrorListener {
     private lateinit var userPreferences: UserPreferences
+    
+    // 服务器连接错误状态
+    private var showServerSelectionDialog by mutableStateOf(false)
+    private var errorServer by mutableStateOf("")
+    private var errorType by mutableStateOf("")
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,22 +32,8 @@ class MainActivity : ComponentActivity() {
         // 初始化服务器管理器
         ServerManager.initialize(userPreferences, applicationContext)
         
-        // 检查是否是由自动服务器切换触发的启动
-        val isAutoServerSwitch = intent.getBooleanExtra("AUTO_SERVER_SWITCH", false)
-        if (isAutoServerSwitch) {
-            val serverName = intent.getStringExtra("SERVER_NAME") ?: "备用服务器"
-            val errorType = intent.getStringExtra("ERROR_TYPE") ?: "连接问题"
-            
-            // 显示切换服务器的通知，包含错误类型
-            Toast.makeText(
-                this, 
-                "检测到服务器问题($errorType)，已自动切换到$serverName", 
-                Toast.LENGTH_LONG
-            ).show()
-            
-            // 重置服务器管理器状态
-            ServerManager.reset()
-        }
+        // 设置服务器连接错误监听器
+        ServerManager.setServerConnectionErrorListener(this)
         
         // 设置沉浸式状态栏
         enableEdgeToEdge()
@@ -49,10 +43,30 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
             MyAppTheme {
+                // 显示主应用界面
                 MyApp(
                     navController = navController,
                 )
+                
+                // 如果需要显示服务器选择弹窗
+                if (showServerSelectionDialog) {
+                    ServerSelectionDialog(
+                        userPreferences = userPreferences,
+                        currentServer = errorServer,
+                        errorType = errorType,
+                        onDismiss = { showServerSelectionDialog = false }
+                    )
+                }
             }
+        }
+    }
+    
+    // 实现ServerConnectionErrorListener接口
+    override fun onServerConnectionError(currentServer: String, errorType: String) {
+        runOnUiThread {
+            this.errorServer = currentServer
+            this.errorType = errorType
+            this.showServerSelectionDialog = true
         }
     }
 }
