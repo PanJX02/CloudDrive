@@ -40,10 +40,10 @@ class MainActivity : ComponentActivity(), ServerManager.Companion.ServerConnecti
     // token刷新相关常量
     companion object {
         private const val TAG = "MainActivity"
-        // 固定检查间隔（1小时，单位毫秒）
-        private const val FIXED_CHECK_INTERVAL_MS =  10 * 1000L
-        // token刷新的阈值，默认为过期前60秒刷新
-        private const val DEFAULT_REFRESH_THRESHOLD_MS = 100 * 1000L
+        // 前台检查间隔（30秒，单位毫秒）
+        private const val FIXED_CHECK_INTERVAL_MS =  30 * 1000L
+        // 默认刷新阈值（24小时，单位毫秒）
+        private const val DEFAULT_REFRESH_THRESHOLD_MS =24 * 60 * 60 * 1000L
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
