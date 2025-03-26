@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.panjx.clouddrive.core.config.Config
 import com.panjx.clouddrive.core.modle.request.User
+import com.panjx.clouddrive.core.network.di.NetworkModule
 import com.panjx.clouddrive.core.network.retrofit.MyNetworkApiService
 import com.panjx.clouddrive.data.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,8 +14,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
@@ -22,13 +21,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val networkApiService: MyNetworkApiService
 
     init {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-
-        val client = OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            .build()
+        // 使用NetworkModule提供的基础客户端，它包含了ServerSwitchInterceptor
+        val client = NetworkModule.providesBaseOkHttpClient(userPreferences)
 
         val contentType = "application/json".toMediaType()
         val json = Json { 
