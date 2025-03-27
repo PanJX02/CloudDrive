@@ -1,6 +1,7 @@
 package com.panjx.clouddrive.util
 
 // 为了支持Keccak-256，引入Bouncy Castle库
+// 添加Tika相关导入
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
@@ -10,7 +11,9 @@ import android.webkit.MimeTypeMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import org.apache.tika.Tika
 import org.bouncycastle.jcajce.provider.digest.Keccak
+import java.io.BufferedInputStream
 import java.io.InputStream
 import java.security.MessageDigest
 import java.text.DecimalFormat
@@ -29,6 +32,9 @@ object FileUtils {
     
     // 设置一个进度更新的间隔，比如每处理100MB数据更新一次
     private const val PROGRESS_UPDATE_INTERVAL = 100 * 1024 * 1024L
+    
+    // 初始化Tika
+    private val tika = Tika()
 
     /**
      * 格式化文件大小
@@ -263,7 +269,7 @@ object FileUtils {
     }
     
     /**
-     * 从Uri获取文件信息（不包括哈希值）
+     * 获取文件信息（不包括哈希值）
      * 哈希值需要异步计算
      * @param context 上下文
      * @param uri 文件Uri
@@ -295,9 +301,14 @@ object FileUtils {
             }
         }
         
-        // 获取MIME类型
-        val mimeType = getMimeType(context, uri)
-        result["mimeType"] = mimeType ?: "未知类型"
+        // 获取基于Tika的MIME类型（通过文件头字节识别）
+        val tikaMimeType = getMimeType(context, uri)
+        result["mimeType"] = tikaMimeType ?: "未知类型"
+        
+        // 获取基于文件扩展名的MIME类型
+        val fileName = result["name"] as? String ?: ""
+        val extensionMimeType = getMimeTypeFromExtension(fileName)
+        result["extensionMimeType"] = extensionMimeType ?: "未知类型"
         
         // 保存URI，用于后续计算哈希值
         result["uri"] = uri
@@ -306,9 +317,36 @@ object FileUtils {
     }
     
     /**
+     * 通过文件扩展名获取MIME类型
+     * @param fileName 文件名
+     * @return MIME类型字符串，如果无法识别则返回null
+     */
+    private fun getMimeTypeFromExtension(fileName: String): String? {
+        val extension = getFileExtension(fileName).lowercase()
+        if (extension.isEmpty()) return null
+        
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+    }
+    
+    /**
      * 获取文件的MIME类型
+     * 首先尝试使用Tika通过文件头进行判断
+     * 如果失败则回退到使用ContentResolver和MimeTypeMap
      */
     private fun getMimeType(context: Context, uri: Uri): String? {
+        try {
+            // 首先尝试使用Tika通过文件头判断MIME类型
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                val bufferedInput = BufferedInputStream(inputStream)
+                // Tika仅需要读取文件开头一小部分来判断类型
+                return tika.detect(bufferedInput, uri.lastPathSegment ?: "")
+            }
+        } catch (e: Exception) {
+            Log.e("FileUtils", "使用Tika检测文件类型失败: ${e.message}")
+            // 出现异常，使用回退方法
+        }
+        
+        // 回退方法：使用系统API
         return if (uri.scheme == ContentResolver.SCHEME_CONTENT) {
             context.contentResolver.getType(uri)
         } else {

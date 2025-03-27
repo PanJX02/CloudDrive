@@ -83,6 +83,9 @@ dependencies {
     
     // 添加BouncyCastle库的依赖，用于支持Keccak-256哈希算法
     implementation(libs.bcprov.jdk15on)
+    
+    // 添加Apache Tika-core库依赖，用于文件类型检测
+    implementation("org.apache.tika:tika-core:2.9.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

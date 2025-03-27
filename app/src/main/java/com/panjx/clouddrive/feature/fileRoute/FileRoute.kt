@@ -198,38 +198,38 @@ fun FileScreen(
     // 显示文件信息对话框
     if (showFileInfoDialog) {
         // 获取当前路径中最后一个文件夹的名称
-        val currentFolderName = if (currentPath.isNotEmpty()) currentPath.last().second else "根目录"
-        
-        // 获取哈希值和计算时间
-        val md5Data = fileHashes["md5"]
-        val sha1Data = fileHashes["sha1"]
-        val sha256Data = fileHashes["sha256"]
-        val sha512Data = fileHashes["sha512"]
-        val keccak256Data = fileHashes["keccak256"]
+        val currentFolder = currentPath.lastOrNull()
         
         FileInfoDialog(
             fileName = selectedFileInfo["name"] as? String ?: "未知文件",
             fileSize = selectedFileInfo["formattedSize"] as? String ?: "未知大小",
             fileSizeBytes = (selectedFileInfo["size"] as? Long)?.toString() ?: "",
             fileType = selectedFileInfo["mimeType"] as? String ?: "未知类型",
+            extensionFileType = selectedFileInfo["extensionMimeType"] as? String ?: "未知类型",
             fileExtension = selectedFileInfo["extension"] as? String ?: "",
             uploadFolderId = currentDirId,
-            uploadFolderName = currentFolderName,
-            md5Hash = md5Data?.first ?: "",
-            md5Time = md5Data?.second ?: 0,
-            sha1Hash = sha1Data?.first ?: "",
-            sha1Time = sha1Data?.second ?: 0,
-            sha256Hash = sha256Data?.first ?: "",
-            sha256Time = sha256Data?.second ?: 0,
-            sha512Hash = sha512Data?.first ?: "",
-            sha512Time = sha512Data?.second ?: 0,
-            keccak256Hash = keccak256Data?.first ?: "",
-            keccak256Time = keccak256Data?.second ?: 0,
+            uploadFolderName = currentFolder?.second ?: "",
+            md5Hash = fileHashes["md5"]?.first ?: "",
+            md5Time = fileHashes["md5"]?.second ?: 0,
+            sha1Hash = fileHashes["sha1"]?.first ?: "",
+            sha1Time = fileHashes["sha1"]?.second ?: 0,
+            sha256Hash = fileHashes["sha256"]?.first ?: "",
+            sha256Time = fileHashes["sha256"]?.second ?: 0,
+            sha512Hash = fileHashes["sha512"]?.first ?: "",
+            sha512Time = fileHashes["sha512"]?.second ?: 0,
+            keccak256Hash = fileHashes["keccak256"]?.first ?: "",
+            keccak256Time = fileHashes["keccak256"]?.second ?: 0,
             isCalculatingHashes = isCalculatingHashes,
-            onDismiss = { showFileInfoDialog = false },
-            onConfirm = {
-                // TODO: 处理文件上传逻辑
+            onDismiss = {
                 showFileInfoDialog = false
+                selectedFileInfo = mapOf()
+                fileHashes = emptyMap()
+            },
+            onConfirm = {
+                // 处理上传文件的逻辑
+                showFileInfoDialog = false
+                selectedFileInfo = mapOf()
+                fileHashes = emptyMap()
             }
         )
     }

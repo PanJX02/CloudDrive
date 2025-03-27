@@ -73,7 +73,7 @@ fun ItemFile(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = DateTimeUtils.formatTimestamp(data.lastUpdateTime),
+                    text = DateTimeUtils.formatTimestamp(data.lastUpdateTime!!),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -81,7 +81,7 @@ fun ItemFile(
                 // 如果不是文件夹，显示文件大小
                 if (data.folderType != 1) {
                     Text(
-                        text = " · ${FileSizeUtils.formatFileSize(data.fileSize)}",
+                        text = " · ${data.fileSize?.let { FileSizeUtils.formatFileSize(it) } ?: "未知大小"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -32,6 +32,7 @@ fun FileInfoDialog(
     fileSize: String,
     fileSizeBytes: String = "",
     fileType: String,
+    extensionFileType: String = "",
     fileExtension: String = "",
     uploadFolderId: Long = 0,
     uploadFolderName: String = "",
@@ -87,7 +88,14 @@ fun FileInfoDialog(
                 Spacer(modifier = Modifier.height(SpaceSmall))
                 
                 Text(
-                    text = "文件类型：$fileType",
+                    text = "文件类型(文件头): $fileType",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                
+                Spacer(modifier = Modifier.height(SpaceSmall))
+                
+                Text(
+                    text = "文件类型(扩展名): $extensionFileType",
                     style = MaterialTheme.typography.bodyLarge
                 )
                 

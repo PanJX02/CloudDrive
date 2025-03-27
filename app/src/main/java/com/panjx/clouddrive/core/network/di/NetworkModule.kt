@@ -44,6 +44,8 @@ object NetworkModule {
     fun provideNetworkJson(): Json = Json{
         ignoreUnknownKeys = true  // 忽略未知字段
         coerceInputValues = true  // 允许null值被映射到具有默认值的非空类型
+        isLenient = true          // 增加宽松模式，更好地处理不规范的JSON
+        explicitNulls = false     // 允许缺失字段默认为null
     }
     
     fun okHttpCallFactory(
