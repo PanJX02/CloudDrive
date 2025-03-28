@@ -33,6 +33,38 @@ class TransfersViewModel @Inject constructor(
             initialValue = emptyList()
         )
     
+    val inProgressUploadTasks: StateFlow<List<TransferEntity>> = transferRepository
+        .getInProgressUploadTasks()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    val completedUploadTasks: StateFlow<List<TransferEntity>> = transferRepository
+        .getCompletedUploadTasks()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    val inProgressDownloadTasks: StateFlow<List<TransferEntity>> = transferRepository
+        .getInProgressDownloadTasks()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    val completedDownloadTasks: StateFlow<List<TransferEntity>> = transferRepository
+        .getCompletedDownloadTasks()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
     // 添加模拟数据用于测试
     fun addSampleData() {
         viewModelScope.launch {

@@ -16,6 +16,12 @@ interface TransferDao {
     @Query("SELECT * FROM transfers WHERE status = :status")
     fun getTransfersByStatus(status: String): Flow<List<TransferEntity>>
     
+    @Query("SELECT * FROM transfers WHERE type = :type AND status = :status ORDER BY createdAt DESC")
+    fun getTransfersByTypeAndStatus(type: TransferType, status: String): Flow<List<TransferEntity>>
+    
+    @Query("SELECT * FROM transfers WHERE type = :type AND status != :status ORDER BY createdAt DESC")
+    fun getTransfersByTypeExcludeStatus(type: TransferType, status: String): Flow<List<TransferEntity>>
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransfer(transfer: TransferEntity): Long
     

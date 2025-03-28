@@ -20,6 +20,22 @@ class TransferRepository @Inject constructor(
         return transferDao.getTransfersByType(TransferType.DOWNLOAD)
     }
     
+    fun getInProgressUploadTasks(): Flow<List<TransferEntity>> {
+        return transferDao.getTransfersByTypeExcludeStatus(TransferType.UPLOAD, TransferStatus.COMPLETED.name)
+    }
+    
+    fun getCompletedUploadTasks(): Flow<List<TransferEntity>> {
+        return transferDao.getTransfersByTypeAndStatus(TransferType.UPLOAD, TransferStatus.COMPLETED.name)
+    }
+    
+    fun getInProgressDownloadTasks(): Flow<List<TransferEntity>> {
+        return transferDao.getTransfersByTypeExcludeStatus(TransferType.DOWNLOAD, TransferStatus.COMPLETED.name)
+    }
+    
+    fun getCompletedDownloadTasks(): Flow<List<TransferEntity>> {
+        return transferDao.getTransfersByTypeAndStatus(TransferType.DOWNLOAD, TransferStatus.COMPLETED.name)
+    }
+    
     suspend fun addTransfer(
         fileName: String,
         progress: Int = 0,
