@@ -73,7 +73,7 @@ fun ItemFile(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = DateTimeUtils.formatTimestamp(data.lastUpdateTime!!),
+                    text = data.lastUpdateTime?.let { DateTimeUtils.formatTimestamp(it) } ?: "未知时间",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

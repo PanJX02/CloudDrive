@@ -17,6 +17,7 @@ import com.panjx.clouddrive.core.network.di.NetworkModule
 import com.panjx.clouddrive.data.UserPreferences
 import com.panjx.clouddrive.ui.MyApp
 import com.panjx.clouddrive.ui.components.ServerSelectionDialog
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity(), ServerManager.Companion.ServerConnectionErrorListener {
     private lateinit var userPreferences: UserPreferences
     private lateinit var tokenManager: TokenManager

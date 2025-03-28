@@ -29,14 +29,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.panjx.clouddrive.data.database.TransferEntity
 
 @Composable
 fun TransfersRoute() {
@@ -45,29 +47,20 @@ fun TransfersRoute() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransfersScreen() {
+fun TransfersScreen(
+    viewModel: TransfersViewModel = hiltViewModel()
+) {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("上传", "下载")
     
-    val uploadTasks = remember { mutableStateListOf<TransferTask>() }
-    val downloadTasks = remember { mutableStateListOf<TransferTask>() }
+    val uploadTasks by viewModel.uploadTasks.collectAsState()
+    val downloadTasks by viewModel.downloadTasks.collectAsState()
 
-    // 模拟一些传输任务
+    // 首次加载时添加测试数据
     LaunchedEffect(Unit) {
-        uploadTasks.addAll(
-            listOf(
-                TransferTask("文档1.doc", 75, TransferStatus.IN_PROGRESS),
-                TransferTask("图片1.jpg", 100, TransferStatus.COMPLETED),
-                TransferTask("视频1.mp4", 30, TransferStatus.PAUSED)
-            )
-        )
-        downloadTasks.addAll(
-            listOf(
-                TransferTask("文档2.doc", 50, TransferStatus.IN_PROGRESS),
-                TransferTask("图片2.jpg", 0, TransferStatus.WAITING),
-                TransferTask("视频2.mp4", 100, TransferStatus.COMPLETED)
-            )
-        )
+        if (uploadTasks.isEmpty() && downloadTasks.isEmpty()) {
+            viewModel.addSampleData()
+        }
     }
 
     Scaffold(
@@ -75,7 +68,7 @@ fun TransfersScreen() {
             TopAppBar(
                 title = { Text("传输列表") },
                 actions = {
-                    IconButton(onClick = { /* 清除已完成 */ }) {
+                    IconButton(onClick = { viewModel.clearCompletedTransfers() }) {
                         Icon(Icons.Default.Clear, "清除已完成")
                     }
                 }
@@ -100,13 +93,28 @@ fun TransfersScreen() {
 
             // 传输列表
             val currentTasks = if (selectedTab == 0) uploadTasks else downloadTasks
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp)
-            ) {
-                items(currentTasks) { task ->
-                    TransferTaskItem(task)
-                    Spacer(modifier = Modifier.height(8.dp))
+            
+            if (currentTasks.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("没有传输任务")
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    items(currentTasks) { task ->
+                        TransferTaskItem(
+                            task = task,
+                            onPauseResume = { viewModel.pauseOrResumeTransfer(task) },
+                            onCancel = { viewModel.cancelTransfer(task) }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
             }
         }
@@ -114,7 +122,11 @@ fun TransfersScreen() {
 }
 
 @Composable
-fun TransferTaskItem(task: TransferTask) {
+fun TransferTaskItem(
+    task: TransferEntity,
+    onPauseResume: () -> Unit,
+    onCancel: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -141,8 +153,17 @@ fun TransferTaskItem(task: TransferTask) {
                 )
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
-
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // 文件大小信息
+            if (task.fileSize > 0) {
+                Text(
+                    text = formatFileSize(task.fileSize),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            
             LinearProgressIndicator(
                 progress = { task.progress / 100f },
                 modifier = Modifier.fillMaxWidth(),
@@ -155,7 +176,7 @@ fun TransferTaskItem(task: TransferTask) {
                 horizontalArrangement = Arrangement.End
             ) {
                 if (task.status != TransferStatus.COMPLETED) {
-                    IconButton(onClick = { /* 暂停/继续 */ }) {
+                    IconButton(onClick = onPauseResume) {
                         Icon(
                             if (task.status == TransferStatus.PAUSED) 
                                 Icons.Default.PlayArrow 
@@ -165,7 +186,7 @@ fun TransferTaskItem(task: TransferTask) {
                         )
                     }
                 }
-                IconButton(onClick = { /* 取消 */ }) {
+                IconButton(onClick = onCancel) {
                     Icon(Icons.Default.Close, "取消")
                 }
             }
@@ -173,11 +194,13 @@ fun TransferTaskItem(task: TransferTask) {
     }
 }
 
-data class TransferTask(
-    val fileName: String,
-    val progress: Int,
-    val status: TransferStatus
-)
+// 格式化文件大小
+private fun formatFileSize(size: Long): String {
+    if (size <= 0) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.0)).toInt()
+    return String.format("%.1f %s", size / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
+}
 
 enum class TransferStatus {
     WAITING,

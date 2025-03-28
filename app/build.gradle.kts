@@ -2,8 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    kotlin("plugin.serialization") version "1.9.24"
-    kotlin("kapt")
+    kotlin("plugin.serialization") version "2.0.21"
+    //kotlin("kapt")
+    id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android") version "2.50"
 }
 
@@ -77,7 +78,7 @@ dependencies {
 
     // Hilt依赖注入
     implementation(libs.hilt.android)
-    kapt(libs.hilt.android.compiler)
+    ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.qiniu.android.sdk)
     
@@ -85,7 +86,12 @@ dependencies {
     implementation(libs.bcprov.jdk15on)
     
     // 添加Apache Tika-core库依赖，用于文件类型检测
-    implementation("org.apache.tika:tika-core:2.9.1")
+    implementation(libs.tika.core)
+
+    // Room数据库
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp("androidx.room:room-compiler:2.6.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

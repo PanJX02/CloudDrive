@@ -5,6 +5,7 @@ import com.panjx.clouddrive.core.network.datasource.MyRetrofitDatasource
 import com.panjx.clouddrive.data.UserPreferences
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Interceptor
@@ -41,6 +42,7 @@ object NetworkModule {
     private val clientWithAuthenticator = AtomicReference<OkHttpClient>()
     private val baseClient = AtomicReference<OkHttpClient>()
     
+    @OptIn(ExperimentalSerializationApi::class)
     fun provideNetworkJson(): Json = Json{
         ignoreUnknownKeys = true  // 忽略未知字段
         coerceInputValues = true  // 允许null值被映射到具有默认值的非空类型

@@ -22,7 +22,7 @@ import kotlinx.serialization.Serializable
  * @property fileMD5 文件MD5值
  * @property fileSHA1 文件SHA1值
  * @property fileSHA256 文件SHA256值
- * @property configId 关联存储配置ID（通过storage_config表获取endpoint/region/bucket）
+ * @property storageId 关联存储配置ID（通过storage_config表获取endpoint/region/bucket）
  * @property fileSize 文件大小（字节）
  * @property fileCover 文件封面
  * @property referCount 引用计数
@@ -48,7 +48,7 @@ data class File(
     val fileMD5: String?,
     val fileSHA1: String?,
     val fileSHA256: String?,
-    val configId: Int?,
+    val storageId: Int?,
     val fileSize: Long?,
     val fileCover: String?,
     val referCount: Int?,
