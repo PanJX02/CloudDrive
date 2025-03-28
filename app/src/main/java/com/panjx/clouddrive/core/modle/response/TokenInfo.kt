@@ -17,6 +17,9 @@ data class TokenInfo(
     companion object {
         private const val TAG = "TokenInfo"
         
+        // 创建Json格式化器的单例
+        private val json = Json { ignoreUnknownKeys = true }
+        
         fun parseJwt(token: String): TokenInfo? {
             return try {
                 val parts = token.split(".")
@@ -34,7 +37,7 @@ data class TokenInfo(
                 val decodedBytes = Base64.decode(payload + padding, Base64.DEFAULT)
                 val decodedString = String(decodedBytes, StandardCharsets.UTF_8)
                 
-                Json { ignoreUnknownKeys = true }.decodeFromString<TokenInfo>(decodedString)
+                json.decodeFromString<TokenInfo>(decodedString)
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
