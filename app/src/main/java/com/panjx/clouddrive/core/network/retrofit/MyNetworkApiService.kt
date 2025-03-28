@@ -6,6 +6,7 @@ import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
+import com.panjx.clouddrive.core.modle.response.UploadResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -56,4 +57,10 @@ interface MyNetworkApiService {
         @Query("email") email: String,
         @Query("code") code: String
     ): NetworkResponse<Boolean>
+
+    // 上传文件
+    @POST("files/upload")
+    suspend fun uploadFile(
+       @Body file: File
+    ): NetworkResponse<UploadResponse>
 }

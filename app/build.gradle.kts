@@ -61,7 +61,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout.compose)
     
     // WorkManager - 后台任务
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation(libs.androidx.work.runtime.ktx)
     
     // 网络请求相关
     implementation(libs.kotlinx.serialization.json)
@@ -91,7 +91,10 @@ dependencies {
     // Room数据库
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    ksp("androidx.room:room-compiler:2.6.1")
+    ksp(libs.androidx.room.compiler)
+
+    //七牛云存储
+    implementation(libs.qiniu.android.sdk)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

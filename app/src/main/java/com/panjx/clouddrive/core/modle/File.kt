@@ -15,7 +15,7 @@ import kotlinx.serialization.Serializable
  * @property fileCategory MIME 类型
  * @property filePid 父目录ID，根目录为0
  * @property folderType 0:文件 1:目录
- * @property delFlag 0:删除 1:回收站 2:正常
+ * @property deleteFlag 0:删除 1:回收站 2:正常
  * @property recoveryTime 回收站过期时间
  * @property createTime 关联创建时间
  * @property lastUpdateTime 最后更新时间
@@ -41,7 +41,7 @@ data class File(
     val fileCategory: String?,
     val filePid: Long?,
     val folderType: Int,
-    val delFlag: Int?,
+    val deleteFlag: Int,
     val recoveryTime: Long?,
     val createTime: Long?,
     val lastUpdateTime: Long?,

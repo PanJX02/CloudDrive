@@ -9,6 +9,7 @@ import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
+import com.panjx.clouddrive.core.modle.response.UploadResponse
 import com.panjx.clouddrive.core.network.di.NetworkModule
 import com.panjx.clouddrive.core.network.retrofit.MyNetworkApiService
 import com.panjx.clouddrive.data.UserPreferences
@@ -92,5 +93,10 @@ class MyRetrofitDatasource(
     suspend fun sendEmailVerifyCode(email: String): NetworkResponse<Nothing> {
         Log.d("MyRetrofitDatasource", "发送验证码: email=$email")
         return getService().sendEmailVerifyCode(email)
+    }
+
+    suspend fun uploadFile(file: File): NetworkResponse<UploadResponse> {
+        Log.d("MyRetrofitDatasource", "上传文件: file=$file")
+        return getService().uploadFile(file)
     }
 }
