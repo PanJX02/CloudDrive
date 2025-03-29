@@ -96,7 +96,7 @@ fun TransfersScreen(
     // 首次加载时添加测试数据
     LaunchedEffect(Unit) {
         if (uploadTasks.isEmpty() && downloadTasks.isEmpty()) {
-            viewModel.addSampleData()
+            //viewModel.addSampleData()
         }
     }
 
