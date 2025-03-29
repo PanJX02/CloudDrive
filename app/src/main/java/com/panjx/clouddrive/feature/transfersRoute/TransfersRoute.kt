@@ -18,7 +18,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
@@ -53,6 +56,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panjx.clouddrive.data.database.TransferEntity
+import com.panjx.clouddrive.data.database.TransferType
 
 @Composable
 fun TransfersRoute() {
@@ -323,8 +327,12 @@ fun TransferTaskItem(
             ) {
                 Text(
                     text = formatFileName(task.fileName, task.fileExtension),
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = when(task.status) {
                         TransferStatus.WAITING -> "等待中"
@@ -335,7 +343,8 @@ fun TransferTaskItem(
                         TransferStatus.CALCULATING_HASH -> "计算哈希中"
                         TransferStatus.HASH_CALCULATED -> "计算完成"
                     },
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = 4.dp)
                 )
             }
             
@@ -391,6 +400,13 @@ private fun formatFileSize(size: Long): String {
     return String.format("%.1f %s", size / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
 }
 
+// 格式化时间戳为可读形式
+private fun formatTimestamp(timestamp: Long): String {
+    val date = java.util.Date(timestamp)
+    val format = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+    return format.format(date)
+}
+
 // 智能地拼接文件名和扩展名，避免重复
 private fun formatFileName(fileName: String, extension: String?): String {
     if (extension.isNullOrEmpty()) {
@@ -422,61 +438,219 @@ fun FileInfoDialog(
     onDismiss: () -> Unit,
     onStartUpload: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
+    
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("文件信息") },
+        title = { Text("文件详细信息") },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(scrollState)
                     .padding(vertical = 8.dp)
             ) {
+                // 基本信息
+                Text(
+                    text = "基本信息",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = "ID：${transfer.id}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
                 Text(
                     text = "文件名：${formatFileName(transfer.fileName, transfer.fileExtension)}",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
                 Text(
-                    text = "文件大小：${formatFileSize(transfer.fileSize)}",
-                    style = MaterialTheme.typography.bodyLarge
+                    text = "大小：${formatFileSize(transfer.fileSize)}",
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
                 Text(
-                    text = "文件类型：${transfer.fileCategory ?: "未知类型"}",
-                    style = MaterialTheme.typography.bodyLarge
+                    text = "进度：${transfer.progress}%",
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "状态：${transfer.status}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 
                 Text(
-                    text = "MD5哈希值：${transfer.fileMD5 ?: "未计算"}",
+                    text = "类型：${transfer.type}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "本地路径：${transfer.filePath}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                if (transfer.remoteUrl.isNotEmpty()) {
+                    Text(
+                        text = "远程URL：${transfer.remoteUrl}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                
+                Text(
+                    text = "创建时间：${formatTimestamp(transfer.createdAt)}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "更新时间：${formatTimestamp(transfer.updatedAt)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
+                // 文件元数据
                 Text(
-                    text = "SHA1哈希值：${transfer.fileSHA1 ?: "未计算"}",
+                    text = "文件元数据",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = "用户ID：${transfer.userId ?: "未设置"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "文件ID：${transfer.fileId ?: "未设置"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "扩展名：${transfer.fileExtension ?: "无"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "文件类型：${transfer.fileCategory ?: "未知"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "父文件夹ID：${transfer.filePid ?: "根目录"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "文件夹类型：${transfer.folderType}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "删除标记：${transfer.deleteFlag}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "存储ID：${transfer.storageId ?: "未设置"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "文件封面：${transfer.fileCover ?: "无"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "引用计数：${transfer.referCount ?: "未设置"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "文件状态：${transfer.fileStatus ?: "未设置"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "转码状态：${transfer.transcodeStatus ?: "未设置"}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
+                // 哈希值信息
                 Text(
-                    text = "SHA256哈希值：${transfer.fileSHA256 ?: "未计算"}",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "哈希值信息",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                if (transfer.fileMD5 != null) {
+                    Text(
+                        text = "MD5：${transfer.fileMD5}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        text = "MD5：未计算",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                
+                if (transfer.fileSHA1 != null) {
+                    Text(
+                        text = "SHA1：${transfer.fileSHA1}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        text = "SHA1：未计算",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                
+                if (transfer.fileSHA256 != null) {
+                    Text(
+                        text = "SHA256：${transfer.fileSHA256}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        text = "SHA256：未计算",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                Text(
-                    text = "上传路径：父文件夹ID=${transfer.filePid ?: "根目录"}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                // 上传信息
+                if (transfer.type == TransferType.UPLOAD) {
+                    Text(
+                        text = "上传信息",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "域名：${transfer.domain ?: "未设置"}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    Text(
+                        text = "上传令牌：${transfer.uploadToken ?: "未设置"}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         },
         confirmButton = {
@@ -486,7 +660,7 @@ fun FileInfoDialog(
         },
         dismissButton = {
             Button(onClick = onDismiss) {
-                Text("取消")
+                Text("关闭")
             }
         }
     )

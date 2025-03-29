@@ -15,23 +15,23 @@ data class TransferEntity(
     val filePath: String, // 本地文件路径
     val remoteUrl: String = "", // 远程URL
     val fileSize: Long = 0, // 文件大小(字节)
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis(),
+    val createdAt: Long = System.currentTimeMillis(), // 创建时间
+    val updatedAt: Long = System.currentTimeMillis(), // 更新时间
     
     // 添加来自File.kt的字段
-    val userId: Long? = null,
-    val fileId: Long? = null,
-    val fileExtension: String? = null,
-    val fileCategory: String? = null,
-    val filePid: Long? = null,
+    val userId: Long? = null, // 用户ID
+    val fileId: Long? = null, // 文件ID
+    val fileExtension: String? = null, // 文件扩展名
+    val fileCategory: String? = null, // 文件分类
+    val filePid: Long? = null, // 文件父ID
     val folderType: Int = 0, // 默认为文件类型
     val deleteFlag: Int = 2, // 默认为正常
-    val fileMD5: String? = null,
-    val fileSHA1: String? = null,
-    val fileSHA256: String? = null,
-    val storageId: Int? = null,
-    val fileCover: String? = null,
-    val referCount: Int? = null,
+    val fileMD5: String? = null, // 文件MD5
+    val fileSHA1: String? = null, // 文件SHA1
+    val fileSHA256: String? = null, // 文件SHA256
+    val storageId: Int? = null, // 存储ID
+    val fileCover: String? = null, // 文件封面
+    val referCount: Int? = null, // 引用计数
     val fileStatus: Int? = 1, // 默认为正常
     val transcodeStatus: Int? = 0, // 默认未转码
     
