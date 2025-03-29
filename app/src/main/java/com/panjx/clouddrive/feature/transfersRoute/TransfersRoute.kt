@@ -42,7 +42,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -675,40 +674,14 @@ fun FileInfoDialog(
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
                         
-                        // 令牌通常较长，可以分段显示或限制长度
-                        val tokenDisplay = if (transfer.uploadToken.length > 20) {
-                            "${transfer.uploadToken.take(20)}..."
-                        } else {
-                            transfer.uploadToken
-                        }
-                        
+                        // 直接显示完整令牌
                         Text(
-                            text = tokenDisplay,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(start = 8.dp)
+                            text = transfer.uploadToken,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .fillMaxWidth()
                         )
-                        
-                        // 显示完整令牌的按钮
-                        if (transfer.uploadToken.length > 20) {
-                            var showFullToken by remember { mutableStateOf(false) }
-                            
-                            TextButton(
-                                onClick = { showFullToken = !showFullToken },
-                                modifier = Modifier.padding(start = 8.dp)
-                            ) {
-                                Text(if (showFullToken) "隐藏完整令牌" else "显示完整令牌")
-                            }
-                            
-                            if (showFullToken) {
-                                Text(
-                                    text = transfer.uploadToken,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier
-                                        .padding(start = 8.dp)
-                                        .fillMaxWidth()
-                                )
-                            }
-                        }
                     } else {
                         Text(
                             text = "上传令牌：未设置",
