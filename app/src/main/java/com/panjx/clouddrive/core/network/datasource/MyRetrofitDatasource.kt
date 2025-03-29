@@ -99,4 +99,9 @@ class MyRetrofitDatasource(
         Log.d("MyRetrofitDatasource", "上传文件: file=$file")
         return getService().uploadFile(file)
     }
+
+    suspend fun uploadComplete(file: File): NetworkResponse<Nothing> {
+        Log.d("MyRetrofitDatasource", "上传完成: file=$file")
+        return getService().uploadComplete(file)
+    }
 }

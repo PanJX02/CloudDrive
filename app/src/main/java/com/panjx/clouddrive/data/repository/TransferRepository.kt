@@ -43,7 +43,24 @@ class TransferRepository @Inject constructor(
         type: TransferType,
         filePath: String,
         remoteUrl: String = "",
-        fileSize: Long = 0
+        fileSize: Long = 0,
+        userId: Long? = null,
+        fileId: Long? = null,
+        fileExtension: String? = null,
+        fileCategory: String? = null,
+        filePid: Long? = null,
+        folderType: Int = 0,
+        deleteFlag: Int = 2,
+        fileMD5: String? = null,
+        fileSHA1: String? = null,
+        fileSHA256: String? = null,
+        storageId: Int? = null,
+        fileCover: String? = null,
+        referCount: Int? = null,
+        fileStatus: Int? = 1,
+        transcodeStatus: Int? = 0,
+        domain: String? = null,
+        uploadToken: String? = null
     ): Long {
         val transfer = TransferEntity(
             fileName = fileName,
@@ -52,7 +69,24 @@ class TransferRepository @Inject constructor(
             type = type,
             filePath = filePath,
             remoteUrl = remoteUrl,
-            fileSize = fileSize
+            fileSize = fileSize,
+            userId = userId,
+            fileId = fileId,
+            fileExtension = fileExtension,
+            fileCategory = fileCategory,
+            filePid = filePid,
+            folderType = folderType,
+            deleteFlag = deleteFlag,
+            fileMD5 = fileMD5,
+            fileSHA1 = fileSHA1,
+            fileSHA256 = fileSHA256,
+            storageId = storageId,
+            fileCover = fileCover,
+            referCount = referCount,
+            fileStatus = fileStatus,
+            transcodeStatus = transcodeStatus,
+            domain = domain,
+            uploadToken = uploadToken
         )
         return transferDao.insertTransfer(transfer)
     }

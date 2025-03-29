@@ -63,4 +63,10 @@ interface MyNetworkApiService {
     suspend fun uploadFile(
        @Body file: File
     ): NetworkResponse<UploadResponse>
+
+    // 完成上传
+    @POST("files/upload/complete")
+    suspend fun uploadComplete(
+        @Body file: File
+    ): NetworkResponse<Nothing>
 }

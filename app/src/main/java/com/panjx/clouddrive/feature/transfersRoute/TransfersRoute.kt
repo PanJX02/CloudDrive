@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panjx.clouddrive.data.database.TransferEntity
+import com.panjx.clouddrive.data.database.TransferType
 
 @Composable
 fun TransfersRoute() {
@@ -279,7 +281,7 @@ fun TransferTaskItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = task.fileName,
+                    text = "${task.fileName}${task.fileExtension?.let { ".$it" } ?: ""}",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
@@ -295,14 +297,46 @@ fun TransferTaskItem(
             
             Spacer(modifier = Modifier.height(4.dp))
             
-            // 文件大小信息
-            if (task.fileSize > 0) {
-                Text(
-                    text = formatFileSize(task.fileSize),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+            // 文件信息行
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                // 显示文件类型
+                task.fileCategory?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // 文件大小信息
+                if (task.fileSize > 0) {
+                    Text(
+                        text = formatFileSize(task.fileSize),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
+            
+            // 显示域名信息（仅上传任务）
+            if (task.type == TransferType.UPLOAD && task.domain != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "存储域名: ${task.domain}",
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
             
             LinearProgressIndicator(
                 progress = { task.progress / 100f },
