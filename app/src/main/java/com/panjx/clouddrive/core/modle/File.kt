@@ -33,15 +33,15 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class File(
-    val id: Long,
+    val id: Long?,
     val userId: Long?,
     val fileId: Long?,
-    val fileName: String,
+    val fileName: String?,
     val fileExtension: String?,
     val fileCategory: String?,
     val filePid: Long?,
-    val folderType: Int,
-    val deleteFlag: Int,
+    val folderType: Int?,
+    val deleteFlag: Int?,
     val recoveryTime: Long?,
     val createTime: Long?,
     val lastUpdateTime: Long?,

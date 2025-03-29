@@ -448,12 +448,12 @@ fun FileScreen(
                                 }
                             }
                         } else {
-                            items(fileList, key = { it.id }) { file ->
+                            items(fileList, key = { it.id!! }) { file ->
                                 ItemFile(
                                     data = file,
                                     isSelected = selectedFiles.contains(file.id),
                                     onSelectChange = { isSelected ->
-                                        handleSelectChange(file.id, isSelected)
+                                        file.id?.let { handleSelectChange(it, isSelected) }
                                     },
                                     onFolderClick = { folderId, folderName ->
                                         // 点击文件夹，加载文件夹内容

@@ -19,8 +19,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.http.Query
+import javax.inject.Inject
 
-class MyRetrofitDatasource(
+class MyRetrofitDatasource @Inject constructor(
     private val userPreferences: UserPreferences,
     private val client: OkHttpClient? = null
 ) {
@@ -96,8 +97,37 @@ class MyRetrofitDatasource(
     }
 
     suspend fun uploadFile(file: File): NetworkResponse<UploadResponse> {
-        Log.d("MyRetrofitDatasource", "上传文件: file=$file")
-        return getService().uploadFile(file)
+        Log.d("MyRetrofitDatasource", "========== 开始上传文件API调用 ==========")
+        Log.d("MyRetrofitDatasource", "文件详情:")
+        Log.d("MyRetrofitDatasource", "- 文件名: ${file.fileName}")
+        Log.d("MyRetrofitDatasource", "- 扩展名: ${file.fileExtension}")
+        Log.d("MyRetrofitDatasource", "- SHA256: ${file.fileSHA256}")
+        Log.d("MyRetrofitDatasource", "- 父目录ID: ${file.filePid}")
+        
+        try {
+            val response = getService().uploadFile(file)
+            Log.d("MyRetrofitDatasource", "API调用完成，响应码: ${response.code}")
+            
+            if (response.code == 0) {
+                Log.d("MyRetrofitDatasource", "上传API调用成功:")
+                Log.d("MyRetrofitDatasource", "- 文件是否存在: ${response.data?.fileExists}")
+                Log.d("MyRetrofitDatasource", "- 域名列表: ${response.data?.domain}")
+                Log.d("MyRetrofitDatasource", "- 上传令牌: ${response.data?.uploadToken}")
+            } else {
+                Log.e("MyRetrofitDatasource", "上传API调用失败:")
+                Log.e("MyRetrofitDatasource", "- 错误码: ${response.code}")
+                Log.e("MyRetrofitDatasource", "- 错误消息: ${response.message}")
+            }
+            
+            Log.d("MyRetrofitDatasource", "========== 上传文件API调用结束 ==========")
+            return response
+        } catch (e: Exception) {
+            Log.e("MyRetrofitDatasource", "上传API调用异常:", e)
+            Log.e("MyRetrofitDatasource", "- 异常类型: ${e.javaClass.simpleName}")
+            Log.e("MyRetrofitDatasource", "- 异常消息: ${e.message}")
+            Log.d("MyRetrofitDatasource", "========== 上传文件API调用结束(异常) ==========")
+            throw e
+        }
     }
 
     suspend fun uploadComplete(file: File): NetworkResponse<Nothing> {

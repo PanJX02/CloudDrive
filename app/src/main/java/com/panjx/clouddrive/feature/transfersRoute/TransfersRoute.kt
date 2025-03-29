@@ -42,6 +42,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -92,7 +93,7 @@ fun TransfersScreen(
     // 添加状态变量用于显示文件信息弹窗
     var showFileInfoDialog by remember { mutableStateOf(false) }
     var selectedTransfer by remember { mutableStateOf<TransferEntity?>(null) }
-    
+
     // 首次加载时添加测试数据
     LaunchedEffect(Unit) {
         if (uploadTasks.isEmpty() && downloadTasks.isEmpty()) {
@@ -294,7 +295,7 @@ fun TransfersScreen(
                 Log.d("TransfersRoute", "用户点击开始上传按钮")
                 showFileInfoDialog = false
                 selectedTransfer?.let { transfer ->
-                    viewModel.setTransferStatusToWaiting(transfer.id)
+                    viewModel.setTransferStatusToWaitingAndRequestToken(transfer.id)
                 }
                 selectedTransfer = null
             }
@@ -351,11 +352,11 @@ fun TransferTaskItem(
             Spacer(modifier = Modifier.height(4.dp))
             
             // 只显示文件大小信息
-            if (task.fileSize > 0) {
-                Text(
-                    text = formatFileSize(task.fileSize),
-                    style = MaterialTheme.typography.bodySmall
-                )
+                if (task.fileSize > 0) {
+                    Text(
+                        text = formatFileSize(task.fileSize),
+                        style = MaterialTheme.typography.bodySmall
+                    )
             }
             
             Spacer(modifier = Modifier.height(4.dp))
@@ -641,21 +642,97 @@ fun FileInfoDialog(
                     
                     Spacer(modifier = Modifier.height(4.dp))
                     
-                    Text(
-                        text = "域名：${transfer.domain ?: "未设置"}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    // 显示更详细的域名信息
+                    if (transfer.domain != null) {
+                        Text(
+                            text = "域名列表：",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        
+                        // 如果域名是逗号分隔的列表，将其分割显示
+                        transfer.domain.split(",").forEach { domainItem ->
+                            Text(
+                                text = "· $domainItem",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "域名：未设置",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                     
-                    Text(
-                        text = "上传令牌：${transfer.uploadToken ?: "未设置"}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // 显示上传令牌信息
+                    if (transfer.uploadToken != null) {
+                        Text(
+                            text = "上传令牌：",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        
+                        // 令牌通常较长，可以分段显示或限制长度
+                        val tokenDisplay = if (transfer.uploadToken.length > 20) {
+                            "${transfer.uploadToken.take(20)}..."
+                        } else {
+                            transfer.uploadToken
+                        }
+                        
+                        Text(
+                            text = tokenDisplay,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                        
+                        // 显示完整令牌的按钮
+                        if (transfer.uploadToken.length > 20) {
+                            var showFullToken by remember { mutableStateOf(false) }
+                            
+                            TextButton(
+                                onClick = { showFullToken = !showFullToken },
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Text(if (showFullToken) "隐藏完整令牌" else "显示完整令牌")
+                            }
+                            
+                            if (showFullToken) {
+                                Text(
+                                    text = transfer.uploadToken,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier
+                                        .padding(start = 8.dp)
+                                        .fillMaxWidth()
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "上传令牌：未设置",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = onStartUpload) {
-                Text("开始上传")
+            Button(
+                onClick = onStartUpload,
+                // 根据状态调整按钮是否启用
+                enabled = transfer.status != TransferStatus.WAITING && 
+                          transfer.status != TransferStatus.IN_PROGRESS
+            ) {
+                // 根据状态显示不同的按钮文本
+                val buttonText = when (transfer.status) {
+                    TransferStatus.HASH_CALCULATED -> "获取上传令牌"
+                    TransferStatus.WAITING -> "已准备好，等待上传"
+                    TransferStatus.IN_PROGRESS -> "上传中..."
+                    else -> "开始上传"
+                }
+                Text(buttonText)
             }
         },
         dismissButton = {

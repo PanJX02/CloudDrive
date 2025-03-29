@@ -5,6 +5,8 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.network.datasource.MyRetrofitDatasource
 import com.panjx.clouddrive.data.database.TransferEntity
 import com.panjx.clouddrive.data.database.TransferType
 import com.panjx.clouddrive.data.repository.TransferRepository
@@ -18,7 +20,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TransfersViewModel @Inject constructor(
-    private val transferRepository: TransferRepository
+    private val transferRepository: TransferRepository,
+    private val myRetrofitDatasource: MyRetrofitDatasource
 ) : ViewModel() {
 
     val uploadTasks: StateFlow<List<TransferEntity>> = transferRepository
@@ -417,6 +420,148 @@ class TransfersViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("TransfersViewModel", "更新任务状态失败: ${e.message}")
                 e.printStackTrace()
+            }
+        }
+    }
+
+    /**
+     * 请求上传令牌
+     * 在文件哈希计算完成后调用，获取上传所需的token和domain
+     */
+    suspend fun requestUploadToken(transferId: Long) {
+        Log.d("TransfersViewModel", "========== 开始请求上传令牌 ==========")
+        Log.d("TransfersViewModel", "传输ID: $transferId")
+        try {
+            // 获取传输记录
+            val task = transferRepository.getTransferById(transferId)
+            
+            if (task == null) {
+                Log.e("TransfersViewModel", "错误: 找不到传输任务，ID: $transferId")
+                return
+            }
+            
+            Log.d("TransfersViewModel", "成功找到传输任务:")
+            Log.d("TransfersViewModel", "- ID: ${task.id}")
+            Log.d("TransfersViewModel", "- 文件名: ${task.fileName}")
+            Log.d("TransfersViewModel", "- 大小: ${task.fileSize} 字节")
+            Log.d("TransfersViewModel", "- 状态: ${task.status}")
+            Log.d("TransfersViewModel", "- SHA256: ${task.fileSHA256}")
+            
+            // 确保任务处于哈希计算完成状态
+            if (task.status != TransferStatus.HASH_CALCULATED) {
+                Log.e("TransfersViewModel", "错误: 任务状态不正确，当前: ${task.status}, 需要: HASH_CALCULATED")
+                return
+            }
+            
+            // 创建要发送的File对象
+            val fileToUpload = File(
+                id = null,
+                userId = null,
+                fileId = null,
+                fileName = task.fileName,
+                fileExtension = task.fileExtension,
+                fileCategory = null,
+                filePid = task.filePid,
+                folderType = null,
+                deleteFlag = null,
+                recoveryTime = null,
+                createTime = null,
+                lastUpdateTime = null,
+                fileMD5 = null,
+                fileSHA1 = null,
+                fileSHA256 = task.fileSHA256,
+                storageId = null,
+                fileSize = null,
+                fileCover = null,
+                referCount = null,
+                status = null,
+                transcodeStatus = null,
+                fileCreateTime = null,
+                lastReferTime = null
+            )
+            
+            Log.d("TransfersViewModel", "准备请求上传令牌，要发送的数据:")
+            Log.d("TransfersViewModel", "- 文件名: ${fileToUpload.fileName}")
+            Log.d("TransfersViewModel", "- 扩展名: ${fileToUpload.fileExtension}")
+            Log.d("TransfersViewModel", "- SHA256: ${fileToUpload.fileSHA256}")
+            Log.d("TransfersViewModel", "- 父目录ID: ${fileToUpload.filePid}")
+            
+            // 发送网络请求
+            Log.d("TransfersViewModel", "正在调用网络接口 uploadFile()...")
+            val response = myRetrofitDatasource.uploadFile(fileToUpload)
+            
+            Log.d("TransfersViewModel", "网络请求完成，响应码: ${response.code}")
+            Log.d("TransfersViewModel", "响应消息: ${response.message}")
+            
+            if (response.code == 1) {
+                // 请求成功
+                Log.d("TransfersViewModel", "上传令牌请求成功:")
+                Log.d("TransfersViewModel", "- 文件是否已存在: ${response.data?.fileExists}")
+                Log.d("TransfersViewModel", "- 域名列表: ${response.data?.domain}")
+                Log.d("TransfersViewModel", "- 上传令牌: ${response.data?.uploadToken}")
+                
+                // 将domain列表转换为字符串存储
+                val domainString = response.data?.domain?.joinToString(",")
+                
+                // 更新任务
+                val updatedTask = task.copy(
+                    domain = domainString,
+                    uploadToken = response.data?.uploadToken,
+                    status = TransferStatus.WAITING // 更新状态为等待上传
+                )
+                
+                // 保存更新
+                Log.d("TransfersViewModel", "正在更新数据库中的传输任务...")
+                transferRepository.updateTransfer(updatedTask)
+                Log.d("TransfersViewModel", "数据库更新成功，状态已更新为: WAITING")
+                Log.d("TransfersViewModel", "- 存储的域名: ${updatedTask.domain}")
+                Log.d("TransfersViewModel", "- 存储的令牌: ${updatedTask.uploadToken}")
+            } else {
+                // 请求失败
+                Log.e("TransfersViewModel", "上传令牌请求失败:")
+                Log.e("TransfersViewModel", "- 错误码: ${response.code}")
+                Log.e("TransfersViewModel", "- 错误消息: ${response.message}")
+                
+                // 更新状态为失败
+                val updatedTask = task.copy(
+                    status = TransferStatus.FAILED
+                )
+                Log.d("TransfersViewModel", "正在将任务状态更新为: FAILED")
+                transferRepository.updateTransfer(updatedTask)
+                Log.d("TransfersViewModel", "数据库更新完成")
+            }
+        } catch (e: Exception) {
+            Log.e("TransfersViewModel", "请求上传令牌时发生异常:")
+            Log.e("TransfersViewModel", "- 异常类型: ${e.javaClass.simpleName}")
+            Log.e("TransfersViewModel", "- 异常信息: ${e.message}")
+            Log.e("TransfersViewModel", "- 堆栈跟踪:")
+            e.printStackTrace()
+        } finally {
+            Log.d("TransfersViewModel", "========== 上传令牌请求流程结束 ==========")
+        }
+    }
+
+    /**
+     * 设置传输任务状态为等待上传并请求上传令牌
+     * 修改原有方法，增加令牌获取功能
+     */
+    fun setTransferStatusToWaitingAndRequestToken(transferId: Long) {
+        Log.d("TransfersViewModel", "========== 开始处理上传令牌请求 ==========")
+        Log.d("TransfersViewModel", "传输ID: $transferId")
+        viewModelScope.launch {
+            try {
+                Log.d("TransfersViewModel", "启动协程，准备调用requestUploadToken方法")
+                // 调用获取上传令牌的方法
+                requestUploadToken(transferId)
+                Log.d("TransfersViewModel", "requestUploadToken方法调用完成")
+            } catch (e: Exception) {
+                Log.e("TransfersViewModel", "获取上传令牌过程中捕获到异常:")
+                Log.e("TransfersViewModel", "- 异常类型: ${e.javaClass.simpleName}")
+                Log.e("TransfersViewModel", "- 异常信息: ${e.message}")
+                Log.e("TransfersViewModel", "- 堆栈跟踪:")
+                e.printStackTrace()
+            } finally {
+                Log.d("TransfersViewModel", "========== 上传令牌请求处理结束 ==========")
             }
         }
     }

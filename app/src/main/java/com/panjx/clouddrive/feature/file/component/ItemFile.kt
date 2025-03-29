@@ -41,7 +41,7 @@ fun ItemFile(
             .clickable {
                 // 如果是文件夹且提供了点击回调，则触发回调
                 if (data.folderType == 1 && onFolderClick != null) {
-                    onFolderClick(data.id, data.fileName)
+                    data.id?.let { data.fileName?.let { it1 -> onFolderClick(it, it1) } }
                 }
             }
             .padding(horizontal = 15.dp)
@@ -49,25 +49,29 @@ fun ItemFile(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 使用工具类获取文件图标
-        Icon(
-            imageVector = FileIconUtils.getFileIcon(data.folderType, data.fileCategory),
-            contentDescription = if (data.folderType == 1) "Folder" else "File",
-            modifier = Modifier.size(35.dp)
-        )
+        data.folderType?.let { FileIconUtils.getFileIcon(it, data.fileCategory) }?.let {
+            Icon(
+                imageVector = it,
+                contentDescription = if (data.folderType == 1) "Folder" else "File",
+                modifier = Modifier.size(35.dp)
+            )
+        }
 
         Column(
             modifier = Modifier.weight(1f)
                 .padding(horizontal = 15.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(
-                text = if (data.folderType != 1 && !data.fileExtension.isNullOrEmpty()) {
-                    "${data.fileName}.${data.fileExtension}"
-                } else {
-                    data.fileName
-                },
-                style = MaterialTheme.typography.bodyLarge,
-            )
+            (if (data.folderType != 1 && !data.fileExtension.isNullOrEmpty()) {
+                "${data.fileName}.${data.fileExtension}"
+            } else {
+                data.fileName
+            })?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
             SpaceSmall()
             Row(
                 verticalAlignment = Alignment.CenterVertically
