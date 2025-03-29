@@ -80,8 +80,11 @@ object FileUtils {
                 }
             }
             
+            Log.d("FileUtils", "开始计算文件哈希，文件大小: ${formatFileSize(fileSize)}")
+            
             // 并行计算多种哈希算法，每个都在自己的协程中执行
             val md5Job = async(Dispatchers.IO) {
+                Log.d("FileUtils", "开始计算MD5哈希")
                 var startTime = System.currentTimeMillis()
                 var hash = ""
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -96,7 +99,8 @@ object FileUtils {
                         
                         totalBytesRead += bytesRead
                         if (fileSize > 0 && totalBytesRead - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
-                            Log.d("FileUtils", "MD5计算进度: ${(totalBytesRead * 100 / fileSize)}%")
+                            val progress = (totalBytesRead * 100 / fileSize)
+                            Log.d("FileUtils", "MD5计算进度: $progress%, 已处理: ${formatFileSize(totalBytesRead)}")
                             lastProgressUpdate = totalBytesRead
                         }
                     }
@@ -104,10 +108,12 @@ object FileUtils {
                     hash = digest.digest().joinToString("") { "%02x".format(it) }
                 }
                 val duration = System.currentTimeMillis() - startTime
+                Log.d("FileUtils", "MD5计算完成: $hash, 耗时: $duration ms")
                 Pair(hash, duration)
             }
             
             val sha1Job = async(Dispatchers.IO) {
+                Log.d("FileUtils", "开始计算SHA-1哈希")
                 var startTime = System.currentTimeMillis()
                 var hash = ""
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -122,7 +128,8 @@ object FileUtils {
                         
                         totalBytesRead += bytesRead
                         if (fileSize > 0 && totalBytesRead - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
-                            Log.d("FileUtils", "SHA-1计算进度: ${(totalBytesRead * 100 / fileSize)}%")
+                            val progress = (totalBytesRead * 100 / fileSize)
+                            Log.d("FileUtils", "SHA-1计算进度: $progress%, 已处理: ${formatFileSize(totalBytesRead)}")
                             lastProgressUpdate = totalBytesRead
                         }
                     }
@@ -130,10 +137,12 @@ object FileUtils {
                     hash = digest.digest().joinToString("") { "%02x".format(it) }
                 }
                 val duration = System.currentTimeMillis() - startTime
+                Log.d("FileUtils", "SHA-1计算完成: $hash, 耗时: $duration ms")
                 Pair(hash, duration)
             }
             
             val sha256Job = async(Dispatchers.IO) {
+                Log.d("FileUtils", "开始计算SHA-256哈希")
                 var startTime = System.currentTimeMillis()
                 var hash = ""
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -148,7 +157,8 @@ object FileUtils {
                         
                         totalBytesRead += bytesRead
                         if (fileSize > 0 && totalBytesRead - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
-                            Log.d("FileUtils", "SHA-256计算进度: ${(totalBytesRead * 100 / fileSize)}%")
+                            val progress = (totalBytesRead * 100 / fileSize)
+                            Log.d("FileUtils", "SHA-256计算进度: $progress%, 已处理: ${formatFileSize(totalBytesRead)}")
                             lastProgressUpdate = totalBytesRead
                         }
                     }
@@ -156,6 +166,7 @@ object FileUtils {
                     hash = digest.digest().joinToString("") { "%02x".format(it) }
                 }
                 val duration = System.currentTimeMillis() - startTime
+                Log.d("FileUtils", "SHA-256计算完成: $hash, 耗时: $duration ms")
                 Pair(hash, duration)
             }
             
@@ -215,11 +226,23 @@ object FileUtils {
             
             // 等待所有哈希计算完成并收集结果
             val startTime = System.currentTimeMillis()
+            Log.d("FileUtils", "等待所有哈希计算任务完成...")
+            
             val md5Result = md5Job.await()
+            Log.d("FileUtils", "MD5计算任务已完成")
+            
             val sha1Result = sha1Job.await()
+            Log.d("FileUtils", "SHA-1计算任务已完成")
+            
             val sha256Result = sha256Job.await()
+            Log.d("FileUtils", "SHA-256计算任务已完成")
+            
             val sha512Result = sha512Job.await()
+            Log.d("FileUtils", "SHA-512计算任务已完成")
+            
             val keccak256Result = keccak256Job.await()
+            Log.d("FileUtils", "Keccak-256计算任务已完成")
+            
             val totalDuration = System.currentTimeMillis() - startTime
             
             results["md5"] = md5Result
@@ -228,10 +251,12 @@ object FileUtils {
             results["sha512"] = sha512Result
             results["keccak256"] = keccak256Result
             
-            Log.d("FileUtils", "文件大小: ${formatFileSize(fileSize)}, 总耗时: ${totalDuration}ms, " +
-                    "MD5: ${md5Result.second}ms, SHA-1: ${sha1Result.second}ms, " +
-                    "SHA-256: ${sha256Result.second}ms, SHA-512: ${sha512Result.second}ms, " +
-                    "Keccak-256: ${keccak256Result.second}ms")
+            Log.d("FileUtils", "所有哈希计算完成，总耗时: ${totalDuration}ms")
+            Log.d("FileUtils", "MD5: ${md5Result.first.take(8)}..., 耗时: ${md5Result.second}ms")
+            Log.d("FileUtils", "SHA-1: ${sha1Result.first.take(8)}..., 耗时: ${sha1Result.second}ms") 
+            Log.d("FileUtils", "SHA-256: ${sha256Result.first.take(8)}..., 耗时: ${sha256Result.second}ms")
+            Log.d("FileUtils", "SHA-512: ${sha512Result.first.take(8)}..., 耗时: ${sha512Result.second}ms")
+            Log.d("FileUtils", "Keccak-256: ${keccak256Result.first.take(8)}..., 耗时: ${keccak256Result.second}ms")
             
         } catch (e: Exception) {
             Log.e("FileUtils", "计算哈希值时出错: ${e.message}")

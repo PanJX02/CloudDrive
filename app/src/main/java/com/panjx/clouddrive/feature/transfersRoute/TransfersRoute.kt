@@ -1,5 +1,6 @@
 package com.panjx.clouddrive.feature.transfersRoute
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
@@ -7,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
@@ -25,7 +26,10 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,7 +53,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panjx.clouddrive.data.database.TransferEntity
-import com.panjx.clouddrive.data.database.TransferType
 
 @Composable
 fun TransfersRoute() {
@@ -82,6 +85,10 @@ fun TransfersScreen(
     val inProgressDownloadTasks by viewModel.inProgressDownloadTasks.collectAsState()
     val completedDownloadTasks by viewModel.completedDownloadTasks.collectAsState()
 
+    // 添加状态变量用于显示文件信息弹窗
+    var showFileInfoDialog by remember { mutableStateOf(false) }
+    var selectedTransfer by remember { mutableStateOf<TransferEntity?>(null) }
+    
     // 首次加载时添加测试数据
     LaunchedEffect(Unit) {
         if (uploadTasks.isEmpty() && downloadTasks.isEmpty()) {
@@ -198,7 +205,11 @@ fun TransfersScreen(
                                         TransferTaskItem(
                                             task = task,
                                             onPauseResume = { viewModel.pauseOrResumeTransfer(task) },
-                                            onCancel = { viewModel.cancelTransfer(task) }
+                                            onCancel = { viewModel.cancelTransfer(task) },
+                                            onItemClick = {
+                                                selectedTransfer = task
+                                                showFileInfoDialog = true
+                                            }
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                     }
@@ -249,7 +260,11 @@ fun TransfersScreen(
                                         TransferTaskItem(
                                             task = task,
                                             onPauseResume = { viewModel.pauseOrResumeTransfer(task) },
-                                            onCancel = { viewModel.cancelTransfer(task) }
+                                            onCancel = { viewModel.cancelTransfer(task) },
+                                            onItemClick = {
+                                                selectedTransfer = task
+                                                showFileInfoDialog = true
+                                            }
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                     }
@@ -261,16 +276,42 @@ fun TransfersScreen(
             }
         }
     }
+
+    // 显示文件信息弹窗
+    if (showFileInfoDialog && selectedTransfer != null) {
+        FileInfoDialog(
+            transfer = selectedTransfer!!,
+            onDismiss = { 
+                showFileInfoDialog = false
+                selectedTransfer = null
+            },
+            onStartUpload = {
+                // 更改状态为等待上传
+                Log.d("TransfersRoute", "用户点击开始上传按钮")
+                showFileInfoDialog = false
+                selectedTransfer?.let { transfer ->
+                    viewModel.setTransferStatusToWaiting(transfer.id)
+                }
+                selectedTransfer = null
+            }
+        )
+    }
 }
 
 @Composable
 fun TransferTaskItem(
     task: TransferEntity,
     onPauseResume: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onItemClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onItemClick() },
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -281,7 +322,7 @@ fun TransferTaskItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${task.fileName}${task.fileExtension?.let { ".$it" } ?: ""}",
+                    text = formatFileName(task.fileName, task.fileExtension),
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
@@ -290,6 +331,9 @@ fun TransferTaskItem(
                         TransferStatus.IN_PROGRESS -> "传输中"
                         TransferStatus.PAUSED -> "已暂停"
                         TransferStatus.COMPLETED -> "已完成"
+                        TransferStatus.FAILED -> "失败"
+                        TransferStatus.CALCULATING_HASH -> "计算哈希中"
+                        TransferStatus.HASH_CALCULATED -> "计算完成"
                     },
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -297,43 +341,12 @@ fun TransferTaskItem(
             
             Spacer(modifier = Modifier.height(4.dp))
             
-            // 文件信息行
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                // 显示文件类型
-                task.fileCategory?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // 文件大小信息
-                if (task.fileSize > 0) {
-                    Text(
-                        text = formatFileSize(task.fileSize),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-            
-            // 显示域名信息（仅上传任务）
-            if (task.type == TransferType.UPLOAD && task.domain != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "存储域名: ${task.domain}",
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1
-                    )
-                }
+            // 只显示文件大小信息
+            if (task.fileSize > 0) {
+                Text(
+                    text = formatFileSize(task.fileSize),
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
             
             Spacer(modifier = Modifier.height(4.dp))
@@ -349,7 +362,9 @@ fun TransferTaskItem(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                if (task.status != TransferStatus.COMPLETED) {
+                if (task.status != TransferStatus.COMPLETED && 
+                    task.status != TransferStatus.CALCULATING_HASH &&
+                    task.status != TransferStatus.HASH_CALCULATED) {
                     IconButton(onClick = onPauseResume) {
                         Icon(
                             if (task.status == TransferStatus.PAUSED) 
@@ -376,9 +391,103 @@ private fun formatFileSize(size: Long): String {
     return String.format("%.1f %s", size / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
 }
 
+// 智能地拼接文件名和扩展名，避免重复
+private fun formatFileName(fileName: String, extension: String?): String {
+    if (extension.isNullOrEmpty()) {
+        return fileName
+    }
+    
+    // 检查文件名是否已经以该扩展名结尾
+    if (fileName.lowercase().endsWith("." + extension.lowercase())) {
+        return fileName
+    }
+    
+    return "$fileName.$extension"
+}
+
 enum class TransferStatus {
     WAITING,
     IN_PROGRESS,
     PAUSED,
-    COMPLETED
+    COMPLETED,
+    FAILED,
+    CALCULATING_HASH,
+    HASH_CALCULATED
+}
+
+// 添加文件信息弹窗组件
+@Composable
+fun FileInfoDialog(
+    transfer: TransferEntity,
+    onDismiss: () -> Unit,
+    onStartUpload: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("文件信息") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(
+                    text = "文件名：${formatFileName(transfer.fileName, transfer.fileExtension)}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "文件大小：${formatFileSize(transfer.fileSize)}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "文件类型：${transfer.fileCategory ?: "未知类型"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "MD5哈希值：${transfer.fileMD5 ?: "未计算"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "SHA1哈希值：${transfer.fileSHA1 ?: "未计算"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "SHA256哈希值：${transfer.fileSHA256 ?: "未计算"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "上传路径：父文件夹ID=${transfer.filePid ?: "根目录"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onStartUpload) {
+                Text("开始上传")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }

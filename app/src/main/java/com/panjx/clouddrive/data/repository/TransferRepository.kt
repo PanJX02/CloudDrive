@@ -1,5 +1,6 @@
 package com.panjx.clouddrive.data.repository
 
+import android.util.Log
 import com.panjx.clouddrive.data.database.TransferDao
 import com.panjx.clouddrive.data.database.TransferEntity
 import com.panjx.clouddrive.data.database.TransferType
@@ -62,6 +63,7 @@ class TransferRepository @Inject constructor(
         domain: String? = null,
         uploadToken: String? = null
     ): Long {
+        Log.d("TransferRepository", "创建传输任务: $fileName, 状态: $status")
         val transfer = TransferEntity(
             fileName = fileName,
             progress = progress,
@@ -88,12 +90,16 @@ class TransferRepository @Inject constructor(
             domain = domain,
             uploadToken = uploadToken
         )
-        return transferDao.insertTransfer(transfer)
+        val id = transferDao.insertTransfer(transfer)
+        Log.d("TransferRepository", "传输任务已创建，ID: $id")
+        return id
     }
     
     suspend fun updateTransfer(transfer: TransferEntity) {
+        Log.d("TransferRepository", "更新传输任务，ID: ${transfer.id}, 状态: ${transfer.status}")
         val updatedTransfer = transfer.copy(updatedAt = System.currentTimeMillis())
         transferDao.updateTransfer(updatedTransfer)
+        Log.d("TransferRepository", "传输任务已更新")
     }
     
     suspend fun updateTransferStatus(id: Long, status: TransferStatus, progress: Int) {
@@ -107,5 +113,27 @@ class TransferRepository @Inject constructor(
     
     suspend fun deleteCompletedTransfers() {
         transferDao.deleteTransfersByStatus(TransferStatus.COMPLETED.name)
+    }
+    
+    /**
+     * 直接通过ID获取传输记录（不通过Flow）
+     * 用于解决Flow更新延迟问题
+     */
+    suspend fun getTransferById(id: Long): TransferEntity? {
+        Log.d("TransferRepository", "直接从数据库获取传输任务，ID: $id")
+        try {
+            // 使用Room的DAO执行一个直接查询
+            val transfers = transferDao.getTransferListByIds(listOf(id))
+            if (transfers.isNotEmpty()) {
+                Log.d("TransferRepository", "成功获取到传输任务，ID: $id, 状态: ${transfers[0].status}")
+                return transfers[0]
+            } else {
+                Log.e("TransferRepository", "数据库中找不到ID为 $id 的传输任务")
+                return null
+            }
+        } catch (e: Exception) {
+            Log.e("TransferRepository", "获取传输任务出错: ${e.message}")
+            return null
+        }
     }
 } 

@@ -36,4 +36,10 @@ interface TransferDao {
     
     @Query("DELETE FROM transfers WHERE id = :id")
     suspend fun deleteTransferById(id: Long)
+    
+    @Query("SELECT * FROM transfers WHERE id IN (:ids)")
+    suspend fun getTransferListByIds(ids: List<Long>): List<TransferEntity>
+    
+    @Query("SELECT * FROM transfers WHERE id = :id LIMIT 1")
+    suspend fun getTransferById(id: Long): TransferEntity?
 } 

@@ -62,12 +62,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.panjx.clouddrive.core.design.component.FileTopBar
 import com.panjx.clouddrive.core.design.theme.MyAppTheme
 import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.feature.file.component.ItemFile
-import com.panjx.clouddrive.feature.fileRoute.component.FileInfoDialog
+import com.panjx.clouddrive.feature.transfersRoute.TransfersViewModel
 import com.panjx.clouddrive.util.FileUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -85,6 +86,7 @@ fun FileRoute(
             FileScreen(
                 files = emptyList(),
                 viewModel = viewModel,
+                transfersViewModel = hiltViewModel(),
                 isListLoading = true
             )
         }
@@ -93,6 +95,7 @@ fun FileRoute(
             FileScreen(
                 files = emptyList(),
                 viewModel = viewModel,
+                transfersViewModel = hiltViewModel(),
                 isListLoading = false,
                 errorContent = {
                     Column(
@@ -113,6 +116,7 @@ fun FileRoute(
             FileScreen(
                 files = (uiState as FileUiState.Success).files,
                 viewModel = viewModel,
+                transfersViewModel = hiltViewModel(),
                 isListLoading = false
             )
         }
@@ -120,6 +124,7 @@ fun FileRoute(
             FileScreen(
                 files = emptyList(),
                 viewModel = viewModel,
+                transfersViewModel = hiltViewModel(),
                 isListLoading = true
             )
         }
@@ -132,6 +137,7 @@ fun FileScreen(
     toSearch: () -> Unit={},
     files: List<File> = listOf(),
     viewModel: FileViewModel = viewModel(),
+    transfersViewModel: TransfersViewModel = hiltViewModel(),
     isListLoading: Boolean = false,
     errorContent: @Composable (() -> Unit)? = null
 ) {
@@ -142,42 +148,46 @@ fun FileScreen(
     val currentPath by viewModel.currentPath.collectAsState()
     val currentDirId by viewModel.currentDirId.collectAsState()
     
-    // 文件信息对话框状态
-    var showFileInfoDialog by remember { mutableStateOf(false) }
-    var selectedFileInfo by remember { mutableStateOf(mapOf<String, Any>()) }
-    var fileHashes by remember { mutableStateOf<Map<String, Pair<String, Long>>>(emptyMap()) }
-    var isCalculatingHashes by remember { mutableStateOf(false) }
+    // 协程作用域
+    val coroutineScope = rememberCoroutineScope()
     
     // 获取Context
     val context = LocalContext.current
-    
-    // 协程作用域
-    val coroutineScope = rememberCoroutineScope()
     
     // 文件选择器
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            // 获取文件基本信息（不含哈希值）
+            // 获取文件基本信息
             val fileInfo = FileUtils.getFileInfoFromUri(context, it)
-            selectedFileInfo = fileInfo
-            showFileInfoDialog = true
+            Log.d("FileRoute", "选择文件：${fileInfo["name"]}, 大小：${fileInfo["formattedSize"]}, URI: $it")
             
-            // 重置哈希值
-            fileHashes = emptyMap()
-            
-            // 异步计算哈希值
-            isCalculatingHashes = true
             coroutineScope.launch {
-                try {
-                    val hashes = FileUtils.calculateFileHashesAsync(context, it)
-                    fileHashes = hashes
-                } catch (e: Exception) {
-                    Log.e("FileRoute", "计算哈希值异常: ${e.message}")
-                } finally {
-                    isCalculatingHashes = false
+                // 处理文件名，如果包含扩展名则去掉
+                val fullFileName = fileInfo["name"] as? String ?: "未知文件"
+                val extension = fileInfo["extension"] as? String ?: ""
+                
+                // 从文件名中去掉扩展名
+                val fileName = if (extension.isNotEmpty() && fullFileName.endsWith(".$extension", ignoreCase = true)) {
+                    fullFileName.substring(0, fullFileName.length - extension.length - 1)
+                } else {
+                    fullFileName
                 }
+                
+                Log.d("FileRoute", "处理后的文件名: $fileName, 扩展名: $extension")
+                
+                // 添加传输记录并计算哈希值，但不显示弹窗
+                Log.d("FileRoute", "调用transfersViewModel.addUploadTask")
+                transfersViewModel.addUploadTask(
+                    uri = it,
+                    fileName = fileName,
+                    fileSize = fileInfo["size"] as? Long ?: 0L,
+                    fileExtension = extension,
+                    fileCategory = fileInfo["mimeType"] as? String ?: "",
+                    filePid = currentDirId,
+                    context = context
+                )
             }
         }
     }
@@ -193,45 +203,6 @@ fun FileScreen(
         } else {
             selectedFiles.remove(fileId)
         }
-    }
-    
-    // 显示文件信息对话框
-    if (showFileInfoDialog) {
-        // 获取当前路径中最后一个文件夹的名称
-        val currentFolder = currentPath.lastOrNull()
-        
-        FileInfoDialog(
-            fileName = selectedFileInfo["name"] as? String ?: "未知文件",
-            fileSize = selectedFileInfo["formattedSize"] as? String ?: "未知大小",
-            fileSizeBytes = (selectedFileInfo["size"] as? Long)?.toString() ?: "",
-            fileType = selectedFileInfo["mimeType"] as? String ?: "未知类型",
-            extensionFileType = selectedFileInfo["extensionMimeType"] as? String ?: "未知类型",
-            fileExtension = selectedFileInfo["extension"] as? String ?: "",
-            uploadFolderId = currentDirId,
-            uploadFolderName = currentFolder?.second ?: "",
-            md5Hash = fileHashes["md5"]?.first ?: "",
-            md5Time = fileHashes["md5"]?.second ?: 0,
-            sha1Hash = fileHashes["sha1"]?.first ?: "",
-            sha1Time = fileHashes["sha1"]?.second ?: 0,
-            sha256Hash = fileHashes["sha256"]?.first ?: "",
-            sha256Time = fileHashes["sha256"]?.second ?: 0,
-            sha512Hash = fileHashes["sha512"]?.first ?: "",
-            sha512Time = fileHashes["sha512"]?.second ?: 0,
-            keccak256Hash = fileHashes["keccak256"]?.first ?: "",
-            keccak256Time = fileHashes["keccak256"]?.second ?: 0,
-            isCalculatingHashes = isCalculatingHashes,
-            onDismiss = {
-                showFileInfoDialog = false
-                selectedFileInfo = mapOf()
-                fileHashes = emptyMap()
-            },
-            onConfirm = {
-                // 处理上传文件的逻辑
-                showFileInfoDialog = false
-                selectedFileInfo = mapOf()
-                fileHashes = emptyMap()
-            }
-        )
     }
 
     if (showBottomSheet) {
