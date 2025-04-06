@@ -177,9 +177,9 @@ fun FileScreen(
                 
                 Log.d("FileRoute", "处理后的文件名: $fileName, 扩展名: $extension")
                 
-                // 添加传输记录并计算哈希值，但不显示弹窗
-                Log.d("FileRoute", "调用transfersViewModel.addUploadTask")
-                transfersViewModel.addUploadTask(
+                // 使用自动上传流程，替代原来的单独添加上传任务的方法
+                Log.d("FileRoute", "调用transfersViewModel.autoUploadProcess")
+                transfersViewModel.autoUploadProcess(
                     uri = it,
                     fileName = fileName,
                     fileSize = fileInfo["size"] as? Long ?: 0L,

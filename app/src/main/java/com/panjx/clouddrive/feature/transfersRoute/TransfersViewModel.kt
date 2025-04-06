@@ -22,7 +22,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TransfersViewModel @Inject constructor(
-    private val transferRepository: TransferRepository,
+    val transferRepository: TransferRepository,
     private val myRetrofitDatasource: MyRetrofitDatasource
 ) : ViewModel() {
 
@@ -197,25 +197,44 @@ class TransfersViewModel @Inject constructor(
                     // 设置取消标志为true，这将在上传过程中通过取消回调检查
                     activeUploadTasks[transfer.id] = true
                     Log.d("TransfersViewModel", "设置任务暂停标志: ${transfer.id}")
-                    // 为了确保断点续传记录保存，需要等待一小段时间
+                    
+                    // 重要：先更新数据库状态，再给断点续传足够的时间来保存记录
+                    // 更新数据库中的状态为暂停
+                    transferRepository.updateTransfer(
+                        transfer.copy(status = TransferStatus.PAUSED)
+                    )
+                    
+                    // 为了确保断点续传记录保存，需要等待一定时间
                     Log.d("TransfersViewModel", "等待保存断点续传记录...")
                     
-                    // 等待500毫秒，给断点续传足够的时间来保存记录
-                    kotlinx.coroutines.delay(500)
+                    // 等待更长时间，增加至2000毫秒，给断点续传足够的时间来保存记录
+                    kotlinx.coroutines.delay(2000)
                     
                     // 检查断点续传记录是否保存成功
                     try {
-                        // 使用与上传相同的key格式
-                        val uploadKey = "tr${transfer.id}${transfer.fileMD5?.take(8) ?: ""}"
+                        // 使用与上传相同的key格式 - 支持新的SHA256分层结构
+                        var uploadKey: String
+                        if (transfer.fileSHA256 != null && transfer.fileSHA256.isNotEmpty()) {
+                            val kodoUtils = KodoUtils()
+                            uploadKey = kodoUtils.generateLayeredKey(transfer.fileSHA256)
+                        } else {
+                            uploadKey = "tr${transfer.id}${transfer.fileMD5?.take(8) ?: ""}"
+                        }
+                        
                         val recorderPath = "${com.qiniu.android.utils.Utils.sdkDirectory()}/recorder"
                         val recordDir = java.io.File(recorderPath)
                         if (recordDir.exists()) {
                             val files = recordDir.listFiles()
                             if (files != null) {
+                                var foundRecord = false
                                 for (file in files) {
                                     if (file.name.contains(uploadKey)) {
                                         Log.d("TransfersViewModel", "暂停时检测到断点续传记录: ${file.name}, 大小: ${file.length()}")
+                                        foundRecord = true
                                     }
+                                }
+                                if (!foundRecord) {
+                                    Log.w("TransfersViewModel", "未找到断点续传记录，可能无法恢复上传进度")
                                 }
                             }
                         }
@@ -227,11 +246,14 @@ class TransfersViewModel @Inject constructor(
                     } catch (e: Exception) {
                         Log.e("TransfersViewModel", "检查断点续传记录失败", e)
                     }
+                    
+                    // 此处不再需要更新状态，因为在尝试取消上传前已经更新了
+                    return@launch  // 直接返回，因为已经在开始处理暂停
                 }
                 TransferStatus.PAUSED
             }
             
-            // 更新数据库中的状态
+            // 更新数据库中的状态（仅在从暂停恢复为进行中时执行，或者其他状态切换）
             transferRepository.updateTransfer(
                 transfer.copy(status = newStatus)
             )
@@ -261,9 +283,54 @@ class TransfersViewModel @Inject constructor(
                 // 设置取消标志为true
                 activeUploadTasks[transfer.id] = true
                 Log.d("TransfersViewModel", "设置任务取消标志: ${transfer.id}")
+                
+                // 重要：先更新任务状态为取消中，避免上传线程继续更新
+                // 更新数据库中的状态为取消中
+                val updatedTask = transfer.copy(status = TransferStatus.CANCELLING)
+                transferRepository.updateTransfer(updatedTask)
+                Log.d("TransfersViewModel", "更新任务状态为取消中: ${transfer.id}")
+                
+                // 如果任务正在上传中，先等待一段时间让上传操作有机会响应取消标志
+                if (transfer.status == TransferStatus.IN_PROGRESS) {
+                    Log.d("TransfersViewModel", "等待上传操作响应取消标志...")
+                    // 等待3秒，让上传操作有足够的时间响应取消标志并停止尝试更新数据库
+                    kotlinx.coroutines.delay(3000)
+                }
             }
             
-            // 然后从数据库中删除任务
+            // 清理与此任务相关的取消标志
+            activeUploadTasks.remove(transfer.id)
+            
+            // 清理断点续传记录
+            try {
+                // 生成上传key（保持与上传时相同的逻辑）
+                var uploadKey: String
+                if (transfer.fileSHA256 != null && transfer.fileSHA256.isNotEmpty()) {
+                    val kodoUtils = KodoUtils()
+                    uploadKey = kodoUtils.generateLayeredKey(transfer.fileSHA256)
+                } else {
+                    uploadKey = "tr${transfer.id}${transfer.fileMD5?.take(8) ?: ""}"
+                }
+                
+                // 删除断点续传记录
+                val recorderPath = "${com.qiniu.android.utils.Utils.sdkDirectory()}/recorder"
+                val recordDir = java.io.File(recorderPath)
+                if (recordDir.exists()) {
+                    val files = recordDir.listFiles()
+                    if (files != null) {
+                        for (file in files) {
+                            if (file.name.contains(uploadKey)) {
+                                val deleted = file.delete()
+                                Log.d("TransfersViewModel", "删除断点续传记录: ${file.name}, 结果: $deleted")
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TransfersViewModel", "清理断点续传记录失败", e)
+            }
+            
+            // 最后从数据库中删除任务
             transferRepository.deleteTransfer(transfer)
             Log.d("TransfersViewModel", "从数据库中删除任务: ${transfer.id}")
         }
@@ -617,26 +684,325 @@ class TransfersViewModel @Inject constructor(
     }
 
     /**
-     * 设置传输任务状态为等待上传并请求上传令牌
-     * 修改原有方法，增加令牌获取功能
+     * 自动上传流程
+     * 将addUploadTask、requestUploadToken、startUploadFile和uploadComplete步骤集成在一起自动执行
+     * 上传整个流程将自动进行，完成一步后自动进入下一步
+     */
+    fun autoUploadProcess(
+        uri: Uri,
+        fileName: String,
+        fileSize: Long,
+        fileExtension: String,
+        fileCategory: String,
+        filePid: Long,
+        context: Context
+    ) {
+        Log.d("TransfersViewModel", "========== 开始自动上传流程 ==========")
+        Log.d("TransfersViewModel", "文件名: $fileName")
+        
+        viewModelScope.launch {
+            try {
+                // 1. 添加上传任务和计算哈希
+                Log.d("TransfersViewModel", "步骤1: 添加上传任务和计算哈希")
+                val id = transferRepository.addTransfer(
+                    fileName = fileName,
+                    progress = 0,
+                    status = TransferStatus.CALCULATING_HASH,
+                    type = TransferType.UPLOAD,
+                    filePath = uri.toString(),
+                    fileSize = fileSize,
+                    fileExtension = fileExtension,
+                    fileCategory = fileCategory,
+                    filePid = filePid
+                )
+                
+                // 2. 计算哈希值
+                Log.d("TransfersViewModel", "步骤2: 计算文件哈希值")
+                val hashes = FileUtils.calculateFileHashesAsync(context, uri)
+                val md5Hash = hashes["md5"]?.first
+                val sha1Hash = hashes["sha1"]?.first
+                val sha256Hash = hashes["sha256"]?.first
+                
+                Log.d("TransfersViewModel", "哈希计算完成")
+                Log.d("TransfersViewModel", "MD5: $md5Hash")
+                
+                // 3. 获取任务并更新哈希值
+                val task = transferRepository.getTransferById(id)
+                
+                if (task != null) {
+                    // 更新哈希值和状态
+                    val updatedTask = task.copy(
+                        fileMD5 = md5Hash,
+                        fileSHA1 = sha1Hash,
+                        fileSHA256 = sha256Hash,
+                        status = TransferStatus.HASH_CALCULATED
+                    )
+                    
+                    // 更新数据库
+                    transferRepository.updateTransfer(updatedTask)
+                    Log.d("TransfersViewModel", "哈希值已更新，状态: HASH_CALCULATED")
+                    
+                    // 4. 请求上传令牌
+                    Log.d("TransfersViewModel", "步骤3: 请求上传令牌")
+                    val tokenTask = transferRepository.getTransferById(id)
+                    
+                    if (tokenTask != null && tokenTask.status == TransferStatus.HASH_CALCULATED) {
+                        // 创建要发送的File对象
+                        val fileToUpload = File(
+                            id = null,
+                            userId = null,
+                            fileId = null,
+                            fileName = tokenTask.fileName,
+                            fileExtension = tokenTask.fileExtension,
+                            fileCategory = null,
+                            filePid = tokenTask.filePid,
+                            folderType = null,
+                            deleteFlag = null,
+                            recoveryTime = null,
+                            createTime = null,
+                            lastUpdateTime = null,
+                            fileMD5 = null,
+                            fileSHA1 = null,
+                            fileSHA256 = tokenTask.fileSHA256,
+                            storageId = tokenTask.storageId,
+                            fileSize = null,
+                            fileCover = null,
+                            referCount = null,
+                            status = null,
+                            transcodeStatus = null,
+                            fileCreateTime = null,
+                            lastReferTime = null
+                        )
+                        
+                        // 发送网络请求获取令牌
+                        val response = myRetrofitDatasource.uploadFile(fileToUpload)
+                        
+                        if (response.code == 1) {
+                            // 请求成功
+                            Log.d("TransfersViewModel", "上传令牌请求成功")
+                            
+                            // 将domain列表转换为字符串存储
+                            val domainString = response.data?.domain?.joinToString(",")
+                            
+                            // 更新任务
+                            val tokenUpdatedTask = tokenTask.copy(
+                                domain = domainString,
+                                uploadToken = response.data?.uploadToken,
+                                storageId = response.data?.storageId,
+                                status = TransferStatus.WAITING // 更新状态为等待上传
+                            )
+                            
+                            // 保存更新
+                            transferRepository.updateTransfer(tokenUpdatedTask)
+                            Log.d("TransfersViewModel", "令牌信息已更新，状态: WAITING")
+                            
+                            // 5. 开始上传文件
+                            Log.d("TransfersViewModel", "步骤4: 开始上传文件")
+                            val uploadTask = transferRepository.getTransferById(id)
+                            
+                            if (uploadTask != null && uploadTask.status == TransferStatus.WAITING) {
+                                // 更新状态为上传中
+                                transferRepository.updateTransfer(
+                                    uploadTask.copy(status = TransferStatus.IN_PROGRESS)
+                                )
+                                
+                                // 初始化KodoUtils，确保断点续传管理器已创建
+                                val kodoUtils = KodoUtils()
+                                val initResult = kodoUtils.init()
+                                
+                                // 使用SHA256哈希值生成分层目录结构的key
+                                var uploadKey: String
+                                
+                                if (uploadTask.fileSHA256 != null && uploadTask.fileSHA256.isNotEmpty()) {
+                                    // 使用SHA256生成分层目录结构
+                                    uploadKey = kodoUtils.generateLayeredKey(uploadTask.fileSHA256)
+                                } else {
+                                    // 如果没有SHA256，则使用原来的方式作为备选方案
+                                    uploadKey = "tr${uploadTask.id}${uploadTask.fileMD5?.take(8) ?: ""}"
+                                }
+                                
+                                // 将此上传任务添加到活跃任务中，并设置取消标志为false
+                                activeUploadTasks[uploadTask.id] = false
+                                
+                                // 上传文件，使用断点续传
+                                kodoUtils.uploadFile(
+                                    context = context,
+                                    uri = Uri.parse(uploadTask.filePath),
+                                    token = uploadTask.uploadToken!!,
+                                    key = uploadKey,
+                                    onProgress = { progress ->
+                                        // 检查取消标志
+                                        if (activeUploadTasks[uploadTask.id] == true) {
+                                            // 任务被暂停或取消，不继续更新进度
+                                            Log.d("TransfersViewModel", "任务已被暂停或取消，不更新进度: ${uploadTask.id}")
+                                        } else {
+                                            // 再次检查任务状态，确保没有被暂停或取消
+                                            viewModelScope.launch {
+                                                try {
+                                                    val currentTask = transferRepository.getTransferById(uploadTask.id)
+                                                    if (currentTask == null) {
+                                                        // 任务已被删除，设置取消标志并停止尝试更新
+                                                        Log.d("TransfersViewModel", "任务已被删除，设置取消标志: ${uploadTask.id}")
+                                                        activeUploadTasks[uploadTask.id] = true
+                                                        return@launch
+                                                    }
+                                                    
+                                                    if (currentTask.status == TransferStatus.PAUSED || 
+                                                        currentTask.status == TransferStatus.FAILED ||
+                                                        currentTask.status == TransferStatus.CANCELLING) {
+                                                        // 任务已被暂停、失败或正在取消，设置取消标志
+                                                        Log.d("TransfersViewModel", "检测到任务状态为 ${currentTask.status}，设置取消标志: ${uploadTask.id}")
+                                                        activeUploadTasks[uploadTask.id] = true
+                                                        return@launch
+                                                    }
+                                                    
+                                                    // 更新进度
+                                                    val progressInt = (progress * 100).toInt()
+                                                    if (progressInt != uploadTask.progress) {
+                                                        Log.d("TransfersViewModel", "更新任务进度: ${uploadTask.id}, $progressInt%")
+                                                        transferRepository.updateTransfer(
+                                                            uploadTask.copy(progress = progressInt)
+                                                        )
+                                                    }
+                                                } catch (e: Exception) {
+                                                    // 处理异常，可能是由于任务已被删除
+                                                    Log.e("TransfersViewModel", "更新进度时出错: ${e.message}")
+                                                    activeUploadTasks[uploadTask.id] = true
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onComplete = { success, message ->
+                                        // 上传完成后自动进入下一步
+                                        viewModelScope.launch {
+                                            // 从活跃任务中移除
+                                            activeUploadTasks.remove(uploadTask.id)
+                                            
+                                            try {
+                                                // 检查此任务是否在完成前被暂停或取消
+                                                val currentTask = transferRepository.getTransferById(uploadTask.id)
+                                                if (currentTask == null) {
+                                                    // 任务已被删除，不需要更新
+                                                    Log.d("TransfersViewModel", "任务已被删除，不更新状态: ${uploadTask.id}")
+                                                    return@launch
+                                                }
+                                                
+                                                // 如果任务已被暂停或正在取消，保持当前状态
+                                                if (currentTask.status == TransferStatus.PAUSED || 
+                                                    currentTask.status == TransferStatus.CANCELLING) {
+                                                    Log.d("TransfersViewModel", "任务状态为 ${currentTask.status}，保持当前状态: ${uploadTask.id}")
+                                                    return@launch
+                                                }
+                                                
+                                                // 文件上传到存储成功，更新状态
+                                                if (success) {
+                                                    // 更新状态为上传到存储完成
+                                                    val updatedCurrentTask = currentTask.copy(
+                                                        status = TransferStatus.UPLOAD_STORAGE_COMPLETED,
+                                                        progress = 100
+                                                    )
+                                                    transferRepository.updateTransfer(updatedCurrentTask)
+                                                    Log.d("TransfersViewModel", "文件已上传到存储，状态: UPLOAD_STORAGE_COMPLETED")
+                                                    
+                                                    // 6. 自动完成上传（通知服务器）
+                                                    Log.d("TransfersViewModel", "步骤5: 自动完成上传（通知服务器）")
+                                                    val finalTask = transferRepository.getTransferById(uploadTask.id)
+                                                    
+                                                    if (finalTask != null && finalTask.status == TransferStatus.UPLOAD_STORAGE_COMPLETED) {
+                                                        // 创建要发送的File对象
+                                                        val fileToUpload = File(
+                                                            id = null,
+                                                            userId = null,
+                                                            fileId = null,
+                                                            fileName = finalTask.fileName,
+                                                            fileExtension = finalTask.fileExtension,
+                                                            fileCategory = finalTask.fileCategory,
+                                                            filePid = finalTask.filePid,
+                                                            folderType = null,
+                                                            deleteFlag = null,
+                                                            recoveryTime = null,
+                                                            createTime = null,
+                                                            lastUpdateTime = null,
+                                                            fileMD5 = finalTask.fileMD5,
+                                                            fileSHA1 = finalTask.fileSHA1,
+                                                            fileSHA256 = finalTask.fileSHA256,
+                                                            storageId = finalTask.storageId,
+                                                            fileSize = finalTask.fileSize,
+                                                            fileCover = null,
+                                                            referCount = null,
+                                                            status = null,
+                                                            transcodeStatus = null,
+                                                            fileCreateTime = null,
+                                                            lastReferTime = null
+                                                        )
+                                                        
+                                                        // 发送上传完成请求
+                                                        val completeResponse = myRetrofitDatasource.uploadComplete(fileToUpload)
+                                                        
+                                                        if (completeResponse.code == 1) {
+                                                            // 完成请求成功，更新状态为COMPLETED
+                                                            transferRepository.updateTransfer(
+                                                                finalTask.copy(status = TransferStatus.COMPLETED)
+                                                            )
+                                                            Log.d("TransfersViewModel", "上传完成请求成功，状态: COMPLETED")
+                                                        } else {
+                                                            // 请求失败
+                                                            Log.e("TransfersViewModel", "上传完成请求失败: ${completeResponse.message}")
+                                                        }
+                                                    }
+                                                } else {
+                                                    // 上传失败
+                                                    transferRepository.updateTransfer(
+                                                        currentTask.copy(status = TransferStatus.FAILED)
+                                                    )
+                                                    Log.e("TransfersViewModel", "文件上传失败: $message")
+                                                }
+                                            } catch (e: Exception) {
+                                                // 处理异常，可能是任务已被删除
+                                                Log.e("TransfersViewModel", "上传完成后更新状态出错: ${e.message}")
+                                            }
+                                        }
+                                    },
+                                    onCancelled = {
+                                        // 检查此任务是否需要被取消
+                                        val shouldCancel = activeUploadTasks[uploadTask.id] == true
+                                        shouldCancel
+                                    }
+                                )
+                            }
+                        } else {
+                            // 请求失败
+                            Log.e("TransfersViewModel", "上传令牌请求失败: ${response.message}")
+                            transferRepository.updateTransfer(
+                                tokenTask.copy(status = TransferStatus.FAILED)
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TransfersViewModel", "自动上传流程中捕获到异常: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                Log.d("TransfersViewModel", "========== 自动上传流程结束 ==========")
+            }
+        }
+    }
+
+    /**
+     * 设置传输状态为等待并请求上传令牌
+     * 用于支持自动化流程，将setTransferStatusToWaiting和requestUploadToken合并
      */
     fun setTransferStatusToWaitingAndRequestToken(transferId: Long) {
-        Log.d("TransfersViewModel", "========== 开始处理上传令牌请求 ==========")
-        Log.d("TransfersViewModel", "传输ID: $transferId")
+        Log.d("TransfersViewModel", "开始请求上传令牌，ID: $transferId")
         viewModelScope.launch {
             try {
                 Log.d("TransfersViewModel", "启动协程，准备调用requestUploadToken方法")
-                // 调用获取上传令牌的方法
+                // 直接调用requestUploadToken方法
                 requestUploadToken(transferId)
                 Log.d("TransfersViewModel", "requestUploadToken方法调用完成")
             } catch (e: Exception) {
-                Log.e("TransfersViewModel", "获取上传令牌过程中捕获到异常:")
-                Log.e("TransfersViewModel", "- 异常类型: ${e.javaClass.simpleName}")
-                Log.e("TransfersViewModel", "- 异常信息: ${e.message}")
-                Log.e("TransfersViewModel", "- 堆栈跟踪:")
+                Log.e("TransfersViewModel", "请求上传令牌失败: ${e.message}")
                 e.printStackTrace()
-            } finally {
-                Log.d("TransfersViewModel", "========== 上传令牌请求处理结束 ==========")
             }
         }
     }
@@ -657,6 +1023,12 @@ class TransfersViewModel @Inject constructor(
                 
                 if (task == null) {
                     Log.e("TransfersViewModel", "错误: 找不到传输任务，ID: $transferId")
+                    return@launch
+                }
+                
+                // 检查是否已经在activeUploadTasks中且标记为取消
+                if (activeUploadTasks.containsKey(task.id) && activeUploadTasks[task.id] == true) {
+                    Log.w("TransfersViewModel", "任务已被标记为取消或暂停，不会开始上传: ${task.id}")
                     return@launch
                 }
                 
@@ -746,21 +1118,45 @@ class TransfersViewModel @Inject constructor(
                     context = context,
                     uri = Uri.parse(task.filePath),
                     token = task.uploadToken!!,
-                    key = uploadKey,  // 使用唯一标识作为key
+                    key = uploadKey,
                     onProgress = { progress ->
                         // 检查取消标志
                         if (activeUploadTasks[task.id] == true) {
                             // 任务被暂停或取消，不继续更新进度
                             Log.d("TransfersViewModel", "任务已被暂停或取消，不更新进度: ${task.id}")
                         } else {
-                            // 更新进度
+                            // 再次检查任务状态，确保没有被暂停或取消
                             viewModelScope.launch {
-                                val progressInt = (progress * 100).toInt()
-                                if (progressInt != task.progress) {
-                                    Log.d("TransfersViewModel", "更新任务进度: ${task.id}, $progressInt%")
-                                    transferRepository.updateTransfer(
-                                        task.copy(progress = progressInt)
-                                    )
+                                try {
+                                    val currentTask = transferRepository.getTransferById(task.id)
+                                    if (currentTask == null) {
+                                        // 任务已被删除，设置取消标志并停止尝试更新
+                                        Log.d("TransfersViewModel", "任务已被删除，设置取消标志: ${task.id}")
+                                        activeUploadTasks[task.id] = true
+                                        return@launch
+                                    }
+                                    
+                                    if (currentTask.status == TransferStatus.PAUSED || 
+                                        currentTask.status == TransferStatus.FAILED ||
+                                        currentTask.status == TransferStatus.CANCELLING) {
+                                        // 任务已被暂停、失败或正在取消，设置取消标志
+                                        Log.d("TransfersViewModel", "检测到任务状态为 ${currentTask.status}，设置取消标志: ${task.id}")
+                                        activeUploadTasks[task.id] = true
+                                        return@launch
+                                    }
+                                    
+                                    // 更新进度
+                                    val progressInt = (progress * 100).toInt()
+                                    if (progressInt != task.progress) {
+                                        Log.d("TransfersViewModel", "更新任务进度: ${task.id}, $progressInt%")
+                                        transferRepository.updateTransfer(
+                                            task.copy(progress = progressInt)
+                                        )
+                                    }
+                                } catch (e: Exception) {
+                                    // 处理异常，可能是由于任务已被删除
+                                    Log.e("TransfersViewModel", "更新进度时出错: ${e.message}")
+                                    activeUploadTasks[task.id] = true
                                 }
                             }
                         }
@@ -771,12 +1167,19 @@ class TransfersViewModel @Inject constructor(
                             // 从活跃任务中移除
                             activeUploadTasks.remove(task.id)
                             
-                            // 检查此任务是否在完成前被暂停或取消
-                            val currentTask = transferRepository.getTransferById(task.id)
-                            if (currentTask != null) {
-                                // 如果任务已被暂停，保持暂停状态
-                                if (currentTask.status == TransferStatus.PAUSED) {
-                                    Log.d("TransfersViewModel", "任务已被暂停，保持暂停状态: ${task.id}")
+                            try {
+                                // 检查此任务是否在完成前被暂停或取消
+                                val currentTask = transferRepository.getTransferById(task.id)
+                                if (currentTask == null) {
+                                    // 任务已被删除，不需要更新
+                                    Log.d("TransfersViewModel", "任务已被删除，不更新状态: ${task.id}")
+                                    return@launch
+                                }
+                                
+                                // 如果任务已被暂停或正在取消，保持当前状态
+                                if (currentTask.status == TransferStatus.PAUSED || 
+                                    currentTask.status == TransferStatus.CANCELLING) {
+                                    Log.d("TransfersViewModel", "任务状态为 ${currentTask.status}，保持当前状态: ${task.id}")
                                     return@launch
                                 }
                                 
@@ -789,6 +1192,9 @@ class TransfersViewModel @Inject constructor(
                                         progress = if (success) 100 else currentTask.progress
                                     )
                                 )
+                            } catch (e: Exception) {
+                                // 处理异常，可能是任务已被删除
+                                Log.e("TransfersViewModel", "上传完成后更新状态出错: ${e.message}")
                             }
                         }
                     },

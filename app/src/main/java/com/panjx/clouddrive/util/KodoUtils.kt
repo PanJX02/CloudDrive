@@ -154,13 +154,26 @@ class KodoUtils {
                                 // 检查是否已有断点记录文件
                                 val files = recorderDir.listFiles()
                                 if (files != null) {
+                                    var foundRecord = false
                                     for (file in files) {
                                         if (file.name.contains(key)) {
                                             Log.d(TAG, "找到断点记录文件: ${file.name}, 大小: ${file.length()}")
+                                            foundRecord = true
                                         }
+                                    }
+                                    if (!foundRecord) {
+                                        Log.w(TAG, "未找到断点记录文件，可能是取消得太快或断点续传未启用")
                                     }
                                 }
                             }
+                        }
+                        
+                        // 强制等待一些时间，确保断点记录文件被正确保存
+                        Thread.sleep(500)
+                        
+                        // 额外检查，如果仍然需要取消，输出日志确认
+                        if (onCancelled()) {
+                            Log.d(TAG, "确认取消上传操作")
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "检查断点记录文件时出错", e)

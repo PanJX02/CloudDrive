@@ -55,8 +55,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewModelScope
 import com.panjx.clouddrive.data.database.TransferEntity
 import com.panjx.clouddrive.data.database.TransferType
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun TransfersRoute() {
@@ -336,6 +339,7 @@ fun TransferTaskItem(
                         TransferStatus.CALCULATING_HASH -> "计算哈希中"
                         TransferStatus.HASH_CALCULATED -> "计算完成"
                         TransferStatus.UPLOAD_STORAGE_COMPLETED -> "等待确认"
+                        TransferStatus.CANCELLING -> "取消中"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 4.dp)
@@ -368,7 +372,8 @@ fun TransferTaskItem(
                 if (task.status != TransferStatus.COMPLETED && 
                     task.status != TransferStatus.CALCULATING_HASH &&
                     task.status != TransferStatus.HASH_CALCULATED &&
-                    task.status != TransferStatus.UPLOAD_STORAGE_COMPLETED) {
+                    task.status != TransferStatus.UPLOAD_STORAGE_COMPLETED &&
+                    task.status != TransferStatus.CANCELLING) {
                     IconButton(onClick = onPauseResume) {
                         Icon(
                             if (task.status == TransferStatus.PAUSED) 
@@ -680,50 +685,82 @@ fun FileInfoDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    // 根据状态决定点击行为
-                    when (transfer.status) {
-                        TransferStatus.UPLOAD_STORAGE_COMPLETED -> {
-                            // 完成上传：调用uploadComplete方法
-                            viewModel.uploadComplete(transfer.id)
-                        }
-                        TransferStatus.HASH_CALCULATED -> {
-                            // 获取上传令牌
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 添加自动上传选项
+                if (transfer.status == TransferStatus.HASH_CALCULATED && transfer.type == TransferType.UPLOAD) {
+                    Button(
+                        onClick = {
+                            // 使用自动上传流程
                             viewModel.setTransferStatusToWaitingAndRequestToken(transfer.id)
-                        }
-                        TransferStatus.WAITING -> {
-                            // 开始上传
-                            viewModel.startUploadFile(transfer.id, context)
-                        }
-                        TransferStatus.FAILED, TransferStatus.PAUSED -> {
-                            // 重新开始上传
-                            viewModel.startUploadFile(transfer.id, context)
-                        }
-                        else -> {
-                            // 其他情况使用默认处理
+                            
+                            // 获取上传令牌后继续下一步
+                            viewModel.viewModelScope.launch {
+                                // 稍等片刻，等待令牌获取完成
+                                delay(2000)
+                                
+                                val updatedTask = viewModel.transferRepository.getTransferById(transfer.id)
+                                if (updatedTask != null && updatedTask.status == TransferStatus.WAITING) {
+                                    // 开始上传
+                                    viewModel.startUploadFile(transfer.id, context)
+                                }
+                            }
                             onDismiss()
                         }
+                    ) {
+                        Text("自动上传")
                     }
-                },
-                // 在上传中时禁用按钮
-                enabled = transfer.status != TransferStatus.IN_PROGRESS && 
-                         transfer.status != TransferStatus.CALCULATING_HASH &&
-                         transfer.status != TransferStatus.COMPLETED
-            ) {
-                // 根据状态显示不同的按钮文本
-                val buttonText = when (transfer.status) {
-                    TransferStatus.HASH_CALCULATED -> "获取上传令牌"
-                    TransferStatus.WAITING -> "开始上传"
-                    TransferStatus.IN_PROGRESS -> "上传中..."
-                    TransferStatus.UPLOAD_STORAGE_COMPLETED -> "完成上传"
-                    TransferStatus.COMPLETED -> "已完成"
-                    TransferStatus.FAILED -> "重新上传"
-                    TransferStatus.PAUSED -> "恢复上传"
-                    TransferStatus.CALCULATING_HASH -> "计算哈希中..."
-                    else -> "开始上传"
                 }
-                Text(buttonText)
+                
+                // 普通操作按钮
+                Button(
+                    onClick = {
+                        // 根据状态决定点击行为
+                        when (transfer.status) {
+                            TransferStatus.UPLOAD_STORAGE_COMPLETED -> {
+                                // 完成上传：调用uploadComplete方法
+                                viewModel.uploadComplete(transfer.id)
+                            }
+                            TransferStatus.HASH_CALCULATED -> {
+                                // 获取上传令牌
+                                viewModel.setTransferStatusToWaitingAndRequestToken(transfer.id)
+                            }
+                            TransferStatus.WAITING -> {
+                                // 开始上传
+                                viewModel.startUploadFile(transfer.id, context)
+                            }
+                            TransferStatus.FAILED, TransferStatus.PAUSED -> {
+                                // 重新开始上传
+                                viewModel.startUploadFile(transfer.id, context)
+                            }
+                            else -> {
+                                // 其他情况使用默认处理
+                                onDismiss()
+                            }
+                        }
+                    },
+                    // 在上传中或取消中时禁用按钮
+                    enabled = transfer.status != TransferStatus.IN_PROGRESS && 
+                            transfer.status != TransferStatus.CALCULATING_HASH &&
+                            transfer.status != TransferStatus.COMPLETED &&
+                            transfer.status != TransferStatus.CANCELLING
+                ) {
+                    // 根据状态显示不同的按钮文本
+                    val buttonText = when (transfer.status) {
+                        TransferStatus.HASH_CALCULATED -> "获取上传令牌"
+                        TransferStatus.WAITING -> "开始上传"
+                        TransferStatus.IN_PROGRESS -> "上传中..."
+                        TransferStatus.UPLOAD_STORAGE_COMPLETED -> "完成上传"
+                        TransferStatus.COMPLETED -> "已完成"
+                        TransferStatus.FAILED -> "重新上传"
+                        TransferStatus.PAUSED -> "恢复上传"
+                        TransferStatus.CALCULATING_HASH -> "计算哈希中..."
+                        TransferStatus.CANCELLING -> "取消中..."
+                        else -> "开始上传"
+                    }
+                    Text(buttonText)
+                }
             }
         },
         dismissButton = {

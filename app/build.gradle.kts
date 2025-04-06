@@ -79,6 +79,7 @@ dependencies {
     // Hilt依赖注入
     implementation(libs.hilt.android)
     implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.lifecycle.process)
     ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.qiniu.android.sdk)
