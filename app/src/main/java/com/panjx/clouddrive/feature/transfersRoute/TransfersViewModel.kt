@@ -543,7 +543,7 @@ class TransfersViewModel @Inject constructor(
                 fileMD5 = null,
                 fileSHA1 = null,
                 fileSHA256 = task.fileSHA256,
-                storageId = null,
+                storageId = task.storageId,
                 fileSize = null,
                 fileCover = null,
                 referCount = null,
@@ -572,6 +572,7 @@ class TransfersViewModel @Inject constructor(
                 Log.d("TransfersViewModel", "- 文件是否已存在: ${response.data?.fileExists}")
                 Log.d("TransfersViewModel", "- 域名列表: ${response.data?.domain}")
                 Log.d("TransfersViewModel", "- 上传令牌: ${response.data?.uploadToken}")
+                Log.d("TransfersViewModel", "- 存储ID: ${response.data?.storageId}")
                 
                 // 将domain列表转换为字符串存储
                 val domainString = response.data?.domain?.joinToString(",")
@@ -580,6 +581,7 @@ class TransfersViewModel @Inject constructor(
                 val updatedTask = task.copy(
                     domain = domainString,
                     uploadToken = response.data?.uploadToken,
+                    storageId = response.data?.storageId,
                     status = TransferStatus.WAITING // 更新状态为等待上传
                 )
                 
@@ -822,6 +824,102 @@ class TransfersViewModel @Inject constructor(
                 }
             } finally {
                 Log.d("TransfersViewModel", "========== 文件上传处理结束 ==========")
+            }
+        }
+    }
+
+    /**
+     * 发送上传完成请求
+     * 在文件上传到七牛云成功后调用，通知服务器更新文件状态
+     * @param transferId 传输任务ID
+     */
+    fun uploadComplete(transferId: Long) {
+        Log.d("TransfersViewModel", "========== 开始处理上传完成请求 ==========")
+        Log.d("TransfersViewModel", "传输ID: $transferId")
+        
+        viewModelScope.launch {
+            try {
+                // 获取传输记录
+                val task = transferRepository.getTransferById(transferId)
+                
+                if (task == null) {
+                    Log.e("TransfersViewModel", "错误: 找不到传输任务，ID: $transferId")
+                    return@launch
+                }
+                
+                // 确保任务状态是已完成
+                if (task.status != TransferStatus.COMPLETED) {
+                    Log.e("TransfersViewModel", "错误: 任务状态不正确，当前: ${task.status}, 需要: COMPLETED")
+                    return@launch
+                }
+                
+                Log.d("TransfersViewModel", "准备发送上传完成请求:")
+                Log.d("TransfersViewModel", "- ID: ${task.id}")
+                Log.d("TransfersViewModel", "- 文件名: ${task.fileName}")
+                Log.d("TransfersViewModel", "- 文件大小: ${task.fileSize}")
+                
+                // 创建要发送的File对象
+                val fileToUpload = File(
+                    id = null,
+                    userId = null,
+                    fileId = null,
+                    fileName = task.fileName,
+                    fileExtension = task.fileExtension,
+                    fileCategory = task.fileCategory,
+                    filePid = task.filePid,
+                    folderType = null,
+                    deleteFlag = null,
+                    recoveryTime = null,
+                    createTime = null,
+                    lastUpdateTime = null,
+                    fileMD5 = task.fileMD5,
+                    fileSHA1 = task.fileSHA1,
+                    fileSHA256 = task.fileSHA256,
+                    storageId = task.storageId,
+                    fileSize = task.fileSize,
+                    fileCover = null,
+                    referCount = null,
+                    status = null,
+                    transcodeStatus = null,
+                    fileCreateTime = null,
+                    lastReferTime = null
+                )
+                
+                Log.d("TransfersViewModel", "准备发送上传完成请求，要发送的数据:")
+                Log.d("TransfersViewModel", "- 文件名: ${fileToUpload.fileName}")
+                Log.d("TransfersViewModel", "- 扩展名: ${fileToUpload.fileExtension}")
+                Log.d("TransfersViewModel", "- 文件大小: ${fileToUpload.fileSize}")
+                Log.d("TransfersViewModel", "- MD5: ${fileToUpload.fileMD5}")
+                Log.d("TransfersViewModel", "- SHA1: ${fileToUpload.fileSHA1}")
+                Log.d("TransfersViewModel", "- SHA256: ${fileToUpload.fileSHA256}")
+                Log.d("TransfersViewModel", "- 父目录ID: ${fileToUpload.filePid}")
+                Log.d("TransfersViewModel", "- 文件夹类型: ${fileToUpload.folderType}")
+                
+                // 发送网络请求
+                Log.d("TransfersViewModel", "正在调用网络接口 uploadComplete()...")
+                val response = myRetrofitDatasource.uploadComplete(fileToUpload)
+                
+                Log.d("TransfersViewModel", "网络请求完成，响应码: ${response.code}")
+                Log.d("TransfersViewModel", "响应消息: ${response.message}")
+                
+                if (response.code == 0) {
+                    // 请求成功
+                    Log.d("TransfersViewModel", "上传完成请求成功")
+                    // 可以更新状态或其他操作
+                } else {
+                    // 请求失败
+                    Log.e("TransfersViewModel", "上传完成请求失败:")
+                    Log.e("TransfersViewModel", "- 错误码: ${response.code}")
+                    Log.e("TransfersViewModel", "- 错误消息: ${response.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("TransfersViewModel", "上传完成请求过程中捕获到异常:")
+                Log.e("TransfersViewModel", "- 异常类型: ${e.javaClass.simpleName}")
+                Log.e("TransfersViewModel", "- 异常信息: ${e.message}")
+                Log.e("TransfersViewModel", "- 堆栈跟踪:")
+                e.printStackTrace()
+            } finally {
+                Log.d("TransfersViewModel", "========== 上传完成请求处理结束 ==========")
             }
         }
     }

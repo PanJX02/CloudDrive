@@ -21,11 +21,11 @@ class UserPreferences(private val context: Context) {
         private val ENDPOINT_KEY = stringPreferencesKey("endpoint")
         
         // 默认后端地址
-        const val DEFAULT_ENDPOINT = "https://api.1216.ink/"
+        const val DEFAULT_ENDPOINT = "http://api.1216.ink/"
         
         // 可选后端地址列表，使用友好名称作为键，实际URL作为值
         val ENDPOINT_OPTIONS = mapOf(
-            "默认服务器" to "https://api.1216.ink/",
+            "默认服务器" to "http://api.1216.ink/",
             "备用服务器1" to "http://8.140.30.175:8080/",
         )
         

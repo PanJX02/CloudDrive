@@ -130,7 +130,7 @@ class MyRetrofitDatasource @Inject constructor(
         }
     }
 
-    suspend fun uploadComplete(file: File): NetworkResponse<Nothing> {
+    suspend fun uploadComplete(file: File): NetworkResponse<Unit> {
         Log.d("MyRetrofitDatasource", "上传完成: file=$file")
         return getService().uploadComplete(file)
     }

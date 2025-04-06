@@ -6,5 +6,6 @@ import kotlinx.serialization.Serializable
 data class UploadResponse(
     val fileExists: Boolean,
     val domain: List<String>?=null,
+    val storageId: Int?=null,
     val uploadToken:String?=null,
 )

@@ -1,6 +1,5 @@
 package com.panjx.clouddrive.feature.transfersRoute
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
@@ -291,26 +290,7 @@ fun TransfersScreen(
         FileInfoDialog(
             transfer = transfer,
             onDismiss = { showFileInfoDialog = false },
-            onStartUpload = {
-                Log.d("TransfersScreen", "开始处理上传按钮点击，当前状态: ${transfer.status}")
-                when (transfer.status) {
-                    TransferStatus.HASH_CALCULATED -> {
-                        // 请求上传令牌
-                        Log.d("TransfersScreen", "请求上传令牌，ID: ${transfer.id}")
-                        viewModel.setTransferStatusToWaitingAndRequestToken(transfer.id)
-                        showFileInfoDialog = false
-                    }
-                    TransferStatus.WAITING -> {
-                        // 开始上传文件
-                        Log.d("TransfersScreen", "开始上传文件，ID: ${transfer.id}")
-                        viewModel.startUploadFile(transfer.id, context)
-                        showFileInfoDialog = false
-                    }
-                    else -> {
-                        Log.d("TransfersScreen", "当前状态不支持上传操作: ${transfer.status}")
-                    }
-                }
-            }
+            viewModel = viewModel
         )
     }
 }
@@ -449,9 +429,10 @@ enum class TransferStatus {
 fun FileInfoDialog(
     transfer: TransferEntity,
     onDismiss: () -> Unit,
-    onStartUpload: () -> Unit
+    viewModel: TransfersViewModel = hiltViewModel()
 ) {
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -706,15 +687,44 @@ fun FileInfoDialog(
         },
         confirmButton = {
             Button(
-                onClick = onStartUpload,
-                // 只在上传中时禁用按钮
-                enabled = transfer.status != TransferStatus.IN_PROGRESS
+                onClick = {
+                    // 根据状态决定点击行为
+                    when (transfer.status) {
+                        TransferStatus.COMPLETED -> {
+                            // 完成上传：调用uploadComplete方法
+                            viewModel.uploadComplete(transfer.id)
+                        }
+                        TransferStatus.HASH_CALCULATED -> {
+                            // 获取上传令牌
+                            viewModel.setTransferStatusToWaitingAndRequestToken(transfer.id)
+                        }
+                        TransferStatus.WAITING -> {
+                            // 开始上传
+                            viewModel.startUploadFile(transfer.id, context)
+                        }
+                        TransferStatus.FAILED, TransferStatus.PAUSED -> {
+                            // 重新开始上传
+                            viewModel.startUploadFile(transfer.id, context)
+                        }
+                        else -> {
+                            // 其他情况使用默认处理
+                            onDismiss()
+                        }
+                    }
+                },
+                // 在上传中时禁用按钮
+                enabled = transfer.status != TransferStatus.IN_PROGRESS && 
+                         transfer.status != TransferStatus.CALCULATING_HASH
             ) {
                 // 根据状态显示不同的按钮文本
                 val buttonText = when (transfer.status) {
                     TransferStatus.HASH_CALCULATED -> "获取上传令牌"
-                    TransferStatus.WAITING -> "已准备好，等待上传"
+                    TransferStatus.WAITING -> "开始上传"
                     TransferStatus.IN_PROGRESS -> "上传中..."
+                    TransferStatus.COMPLETED -> "完成上传"
+                    TransferStatus.FAILED -> "重新上传"
+                    TransferStatus.PAUSED -> "恢复上传"
+                    TransferStatus.CALCULATING_HASH -> "计算哈希中..."
                     else -> "开始上传"
                 }
                 Text(buttonText)
