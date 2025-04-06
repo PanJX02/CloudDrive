@@ -335,6 +335,7 @@ fun TransferTaskItem(
                         TransferStatus.FAILED -> "失败"
                         TransferStatus.CALCULATING_HASH -> "计算哈希中"
                         TransferStatus.HASH_CALCULATED -> "计算完成"
+                        TransferStatus.UPLOAD_STORAGE_COMPLETED -> "等待确认"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 4.dp)
@@ -366,7 +367,8 @@ fun TransferTaskItem(
             ) {
                 if (task.status != TransferStatus.COMPLETED && 
                     task.status != TransferStatus.CALCULATING_HASH &&
-                    task.status != TransferStatus.HASH_CALCULATED) {
+                    task.status != TransferStatus.HASH_CALCULATED &&
+                    task.status != TransferStatus.UPLOAD_STORAGE_COMPLETED) {
                     IconButton(onClick = onPauseResume) {
                         Icon(
                             if (task.status == TransferStatus.PAUSED) 
@@ -414,15 +416,7 @@ private fun formatFileName(fileName: String, extension: String?): String {
     return "$fileName.$extension"
 }
 
-enum class TransferStatus {
-    WAITING,
-    IN_PROGRESS,
-    PAUSED,
-    COMPLETED,
-    FAILED,
-    CALCULATING_HASH,
-    HASH_CALCULATED
-}
+// enum class TransferStatus已移动到单独的TransferStatus.kt文件
 
 // 添加文件信息弹窗组件
 @Composable
@@ -690,7 +684,7 @@ fun FileInfoDialog(
                 onClick = {
                     // 根据状态决定点击行为
                     when (transfer.status) {
-                        TransferStatus.COMPLETED -> {
+                        TransferStatus.UPLOAD_STORAGE_COMPLETED -> {
                             // 完成上传：调用uploadComplete方法
                             viewModel.uploadComplete(transfer.id)
                         }
@@ -714,14 +708,16 @@ fun FileInfoDialog(
                 },
                 // 在上传中时禁用按钮
                 enabled = transfer.status != TransferStatus.IN_PROGRESS && 
-                         transfer.status != TransferStatus.CALCULATING_HASH
+                         transfer.status != TransferStatus.CALCULATING_HASH &&
+                         transfer.status != TransferStatus.COMPLETED
             ) {
                 // 根据状态显示不同的按钮文本
                 val buttonText = when (transfer.status) {
                     TransferStatus.HASH_CALCULATED -> "获取上传令牌"
                     TransferStatus.WAITING -> "开始上传"
                     TransferStatus.IN_PROGRESS -> "上传中..."
-                    TransferStatus.COMPLETED -> "完成上传"
+                    TransferStatus.UPLOAD_STORAGE_COMPLETED -> "完成上传"
+                    TransferStatus.COMPLETED -> "已完成"
                     TransferStatus.FAILED -> "重新上传"
                     TransferStatus.PAUSED -> "恢复上传"
                     TransferStatus.CALCULATING_HASH -> "计算哈希中..."

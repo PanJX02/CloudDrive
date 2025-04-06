@@ -780,8 +780,9 @@ class TransfersViewModel @Inject constructor(
                                     return@launch
                                 }
                                 
-                                val newStatus = if (success) TransferStatus.COMPLETED else TransferStatus.FAILED
-                                Log.d("TransfersViewModel", "上传${if (success) "成功" else "失败"}: $message")
+                                // 修改为新增的状态 UPLOAD_STORAGE_COMPLETED，表示上传到存储完成，但未通知服务器
+                                val newStatus = if (success) TransferStatus.UPLOAD_STORAGE_COMPLETED else TransferStatus.FAILED
+                                Log.d("TransfersViewModel", "上传${if (success) "到存储成功" else "失败"}: $message")
                                 transferRepository.updateTransfer(
                                     currentTask.copy(
                                         status = newStatus,
@@ -847,9 +848,9 @@ class TransfersViewModel @Inject constructor(
                     return@launch
                 }
                 
-                // 确保任务状态是已完成
-                if (task.status != TransferStatus.COMPLETED) {
-                    Log.e("TransfersViewModel", "错误: 任务状态不正确，当前: ${task.status}, 需要: COMPLETED")
+                // 确保任务状态是已上传到存储
+                if (task.status != TransferStatus.UPLOAD_STORAGE_COMPLETED) {
+                    Log.e("TransfersViewModel", "错误: 任务状态不正确，当前: ${task.status}, 需要: UPLOAD_STORAGE_COMPLETED")
                     return@launch
                 }
                 
@@ -902,10 +903,13 @@ class TransfersViewModel @Inject constructor(
                 Log.d("TransfersViewModel", "网络请求完成，响应码: ${response.code}")
                 Log.d("TransfersViewModel", "响应消息: ${response.message}")
                 
-                if (response.code == 0) {
-                    // 请求成功
+                if (response.code == 1) {
+                    // 请求成功，更新状态为COMPLETED
                     Log.d("TransfersViewModel", "上传完成请求成功")
-                    // 可以更新状态或其他操作
+                    transferRepository.updateTransfer(
+                        task.copy(status = TransferStatus.COMPLETED)
+                    )
+                    Log.d("TransfersViewModel", "文件状态已更新为COMPLETED")
                 } else {
                     // 请求失败
                     Log.e("TransfersViewModel", "上传完成请求失败:")
