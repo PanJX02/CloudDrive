@@ -52,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -92,7 +93,10 @@ fun TransfersScreen(
     // 添加状态变量用于显示文件信息弹窗
     var showFileInfoDialog by remember { mutableStateOf(false) }
     var selectedTransfer by remember { mutableStateOf<TransferEntity?>(null) }
-
+    
+    // 获取当前上下文
+    val context = LocalContext.current
+    
     // 首次加载时添加测试数据
     LaunchedEffect(Unit) {
         if (uploadTasks.isEmpty() && downloadTasks.isEmpty()) {
@@ -208,7 +212,7 @@ fun TransfersScreen(
                                     inProgressTasks.forEach { task ->
                                         TransferTaskItem(
                                             task = task,
-                                            onPauseResume = { viewModel.pauseOrResumeTransfer(task) },
+                                            onPauseResume = { viewModel.pauseOrResumeTransfer(task, context) },
                                             onCancel = { viewModel.cancelTransfer(task) },
                                             onItemClick = {
                                                 selectedTransfer = task
@@ -263,7 +267,7 @@ fun TransfersScreen(
                                     completedTasks.forEach { task ->
                                         TransferTaskItem(
                                             task = task,
-                                            onPauseResume = { viewModel.pauseOrResumeTransfer(task) },
+                                            onPauseResume = { viewModel.pauseOrResumeTransfer(task, context) },
                                             onCancel = { viewModel.cancelTransfer(task) },
                                             onItemClick = {
                                                 selectedTransfer = task
@@ -281,22 +285,31 @@ fun TransfersScreen(
         }
     }
 
-    // 显示文件信息弹窗
+    // 处理文件信息弹窗
     if (showFileInfoDialog && selectedTransfer != null) {
+        val transfer = selectedTransfer!!
         FileInfoDialog(
-            transfer = selectedTransfer!!,
-            onDismiss = { 
-                showFileInfoDialog = false
-                selectedTransfer = null
-            },
+            transfer = transfer,
+            onDismiss = { showFileInfoDialog = false },
             onStartUpload = {
-                // 更改状态为等待上传
-                Log.d("TransfersRoute", "用户点击开始上传按钮")
-                showFileInfoDialog = false
-                selectedTransfer?.let { transfer ->
-                    viewModel.setTransferStatusToWaitingAndRequestToken(transfer.id)
+                Log.d("TransfersScreen", "开始处理上传按钮点击，当前状态: ${transfer.status}")
+                when (transfer.status) {
+                    TransferStatus.HASH_CALCULATED -> {
+                        // 请求上传令牌
+                        Log.d("TransfersScreen", "请求上传令牌，ID: ${transfer.id}")
+                        viewModel.setTransferStatusToWaitingAndRequestToken(transfer.id)
+                        showFileInfoDialog = false
+                    }
+                    TransferStatus.WAITING -> {
+                        // 开始上传文件
+                        Log.d("TransfersScreen", "开始上传文件，ID: ${transfer.id}")
+                        viewModel.startUploadFile(transfer.id, context)
+                        showFileInfoDialog = false
+                    }
+                    else -> {
+                        Log.d("TransfersScreen", "当前状态不支持上传操作: ${transfer.status}")
+                    }
                 }
-                selectedTransfer = null
             }
         )
     }
@@ -694,9 +707,8 @@ fun FileInfoDialog(
         confirmButton = {
             Button(
                 onClick = onStartUpload,
-                // 根据状态调整按钮是否启用
-                enabled = transfer.status != TransferStatus.WAITING && 
-                          transfer.status != TransferStatus.IN_PROGRESS
+                // 只在上传中时禁用按钮
+                enabled = transfer.status != TransferStatus.IN_PROGRESS
             ) {
                 // 根据状态显示不同的按钮文本
                 val buttonText = when (transfer.status) {

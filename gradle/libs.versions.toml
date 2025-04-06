@@ -34,6 +34,7 @@ datastoreCoreAndroid = "1.1.3"
 tikaCore = "2.9.1"
 workRuntimeKtx = "2.10.0"
 testng = "6.9.6"
+documentfile = "1.0.1"
 
 [libraries]
 accompanist-insets = { module = "com.google.accompanist:accompanist-insets" }
@@ -83,6 +84,7 @@ room-ktx = { module = "androidx.room:room-ktx" }
 room-runtime = { module = "androidx.room:room-runtime" }
 testng = { group = "org.testng", name = "testng", version.ref = "testng" }
 tika-core = { module = "org.apache.tika:tika-core", version.ref = "tikaCore" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
