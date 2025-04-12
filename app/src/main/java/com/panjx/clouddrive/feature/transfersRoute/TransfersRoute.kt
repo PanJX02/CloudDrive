@@ -712,55 +712,8 @@ fun FileInfoDialog(
                         Text("自动上传")
                     }
                 }
-                
-                // 普通操作按钮
-              Button(
-                    onClick = {
-                        // 根据状态决定点击行为
-                        when (transfer.status) {
-                            TransferStatus.UPLOAD_STORAGE_COMPLETED -> {
-                                // 完成上传：调用uploadComplete方法
-                                viewModel.uploadComplete(transfer.id)
-                            }
-                            TransferStatus.HASH_CALCULATED -> {
-                                // 获取上传令牌
-                                viewModel.setTransferStatusToWaitingAndRequestToken(transfer.id)
-                            }
-                            TransferStatus.WAITING -> {
-                                // 开始上传
-                                viewModel.startUploadFile(transfer.id, context)
-                            }
-                            TransferStatus.FAILED, TransferStatus.PAUSED -> {
-                                // 重新开始上传
-                                viewModel.startUploadFile(transfer.id, context)
-                            }
-                            else -> {
-                                // 其他情况使用默认处理
-                                onDismiss()
-                            }
-                        }
-                    },
-                    // 在上传中或取消中时禁用按钮
-                    enabled = transfer.status != TransferStatus.IN_PROGRESS && 
-                            transfer.status != TransferStatus.CALCULATING_HASH &&
-                            transfer.status != TransferStatus.COMPLETED &&
-                            transfer.status != TransferStatus.CANCELLING
-                ) {
-                    // 根据状态显示不同的按钮文本
-                    val buttonText = when (transfer.status) {
-                        TransferStatus.HASH_CALCULATED -> "获取上传令牌"
-                        TransferStatus.WAITING -> "开始上传"
-                        TransferStatus.IN_PROGRESS -> "上传中..."
-                        TransferStatus.UPLOAD_STORAGE_COMPLETED -> "完成上传"
-                        TransferStatus.COMPLETED -> "已完成"
-                        TransferStatus.FAILED -> "重新上传"
-                        TransferStatus.PAUSED -> "恢复上传"
-                        TransferStatus.CALCULATING_HASH -> "计算哈希中..."
-                        TransferStatus.CANCELLING -> "取消中..."
-                        else -> "开始上传"
-                    }
-                    Text(buttonText)
-                }
+
+
             }
         },
         dismissButton = {
