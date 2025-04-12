@@ -1,16 +1,13 @@
 package com.panjx.clouddrive.feature.main
 
 import android.util.Log
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.with
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -29,8 +26,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -60,7 +60,6 @@ fun MainRote(
     MainScreen(finishPage, userPreferences, onNavigateToLogin)
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun MainScreen(
     finishPage: () -> Unit = {},
@@ -83,161 +82,163 @@ fun MainScreen(
     val shouldShowBottomBar = currentDestination?.route in items.map { it.route }
     // 状态：持有来自 FileRoute 的操作回调
     var fileActions by remember { mutableStateOf(FileActions()) }
-
-    Scaffold(
-        bottomBar = {
-            // Use AnimatedContent for controlled transitions
-            AnimatedContent(
-                targetState = fileActions.hasSelection,
-                label = "BottomBarAnimation",
-                transitionSpec = {
-                    // Define transitions based on target state change - use sequential animation
-                    if (targetState) {
-                        // When selecting files:
-                        // 1. First, slide out the BottomBar (300ms)
-                        // 2. Then, slide in the FileActionBar
-                        slideInVertically(
-                            initialOffsetY = { it },
-                            animationSpec = tween(300, delayMillis = 300) // Delay start by 300ms (until exit completes)
-                        ) with slideOutVertically(
-                            targetOffsetY = { it },
-                            animationSpec = tween(300) // Exit takes 300ms
-                        )
-                    } else {
-                        // When unselecting files:
-                        // 1. First, slide out the FileActionBar (300ms)
-                        // 2. Then, slide in the BottomBar
-                        slideInVertically(
-                            initialOffsetY = { it },
-                            animationSpec = tween(300, delayMillis = 300) // Delay start by 300ms (until exit completes)
-                        ) with slideOutVertically(
-                            targetOffsetY = { it },
-                            animationSpec = tween(300) // Exit takes 300ms
+    
+    // 保存 FileActionBar 和 BottomBar 的高度
+    var actionBarHeightPx by remember { mutableStateOf(0) }
+    var bottomBarHeightPx by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    
+    // 计算底部需要额外添加的空间高度（ActionBar高度 - BottomBar高度）
+    // 如果差值为负，则不需要额外空间
+    val extraBottomSpaceHeight = with(density) { 
+        val actionBarDp = actionBarHeightPx.toDp()
+        val bottomBarDp = bottomBarHeightPx.toDp()
+        if (actionBarDp > bottomBarDp) actionBarDp - bottomBarDp else 0.dp
+    }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            bottomBar = {
+                // 始终显示标准底部栏（如果shouldShowBottomBar为true）
+                if (shouldShowBottomBar) {
+                    Box(
+                        modifier = Modifier
+                            .onGloballyPositioned { coordinates ->
+                                // 保存 BottomBar 高度
+                                bottomBarHeightPx = coordinates.size.height
+                            }
+                    ) {
+                        BottomBar(
+                            navController = navController,
+                            items = items
                         )
                     }
                 }
-            ) { targetSelected -> // Content lambda receives the target state
-                // Display content based on the target state
-                if (targetSelected) {
-                    FileActionBar(
-                        modifier = Modifier.fillMaxWidth(), // Fill width within AnimatedContent
-                        onDownloadClick = fileActions.onDownloadClick,
-                        onMoveClick = fileActions.onMoveClick,
-                        onCopyClick = fileActions.onCopyClick,
-                        onFavoriteClick = fileActions.onFavoriteClick,
-                        onRenameClick = fileActions.onRenameClick,
-                        onDeleteClick = fileActions.onDeleteClick,
-                        onShareClick = fileActions.onShareClick,
-                        onDetailsClick = fileActions.onDetailsClick
-                    )
-                } else if (shouldShowBottomBar) { // Also check if the standard bottom bar should be shown
-                    BottomBar(
-                        navController = navController,
-                        items = items
-                    )
-                } else {
-                    // Optional: Provide an empty Box or Spacer if neither should be shown
-                    // but AnimatedContent needs some content.
-                    Box(modifier = Modifier.fillMaxWidth().height(80.dp)) // Maintain height
+            },
+            contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        ) { innerPadding ->
+            // 主内容区域
+            Box(modifier = Modifier.fillMaxSize()) {
+                NavHost(
+                    navController = navController,
+                    startDestination = Screen.File.route,
+                    modifier = Modifier.padding(innerPadding)
+                ) {
+                    composable(Screen.File.route) {
+                        FileRoute(
+                            onActionsReady = { actions ->
+                                fileActions = actions
+                            },
+                            onDispose = { 
+                                fileActions = FileActions()
+                            },
+                            extraBottomSpace = extraBottomSpaceHeight // 传递计算出的额外空间高度
+                        )
+                    }
+                    composable(Screen.Transfers.route) { TransfersRoute() }
+                    composable(Screen.Me.route) {
+                        MeRoute(
+                            onNavigateToSettings = {
+                                navController.navigate(Screen.Settings.route)
+                            },
+                            onNavigateToShared = {
+                                navController.navigate(Screen.Shared.route)
+                            },
+                            onNavigateToFavorites = {
+                                navController.navigate(Screen.Favorites.route)
+                            },
+                            onNavigateToRecycleBin = {
+                                navController.navigate(Screen.RecycleBin.route)
+                            },
+                            onNavigateToProfile = {
+                                navController.navigate(Screen.Profile.route)
+                            },
+                            onNavigateToAnnouncements = {
+                                navController.navigate(Screen.Announcements.route)
+                            }
+                        )
+                    }
+                    composable(Screen.Settings.route) {
+                        SettingsRoute(
+                            userPreferences = userPreferences,
+                            onLogout = onNavigateToLogin,
+                            onNavigateToAbout = {
+                                navController.navigate(Screen.About.route)
+                            },
+                            onNavigateBack = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+                    composable(Screen.About.route) {
+                        AboutRoute(
+                            onNavigateBack = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+                    composable(Screen.Shared.route) {
+                        SharedRoute(
+                            onNavigateBack = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+                    composable(Screen.Favorites.route) {
+                        FavoritesRoute(
+                            onNavigateBack = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+                    composable(Screen.RecycleBin.route) {
+                        RecycleBinRoute(
+                            onNavigateBack = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+                    composable(Screen.Profile.route) {
+                        ProfileRoute(
+                            onNavigateBack = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+                    composable(Screen.Announcements.route) {
+                        AnnouncementsRoute(
+                            onNavigateBack = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
                 }
             }
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.File.route,
-            modifier = Modifier.padding(innerPadding) // 让 NavHost 内容填充 Scaffold 提供的区域
+        }
+        
+        // FileActionBar 放在最外层 Box 中，确保它可以覆盖在所有内容上方
+        AnimatedVisibility(
+            visible = fileActions.hasSelection,
+            enter = slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it }),
+            modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            composable(Screen.File.route) {
-                FileRoute(
-                    // 提供回调以接收 FileActions
-                    onActionsReady = { actions ->
-                        fileActions = actions
+            FileActionBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { coordinates ->
+                        // 保存 FileActionBar 高度
+                        actionBarHeightPx = coordinates.size.height
                     },
-                    // 提供回调以在 FileRoute 离开时重置 Actions
-                    onDispose = { 
-                        fileActions = FileActions() // Reset actions when FileRoute leaves
-                    }
-                )
-            }
-            composable(Screen.Transfers.route) { TransfersRoute() }
-            composable(Screen.Me.route) {
-                MeRoute(
-                    onNavigateToSettings = {
-                        navController.navigate(Screen.Settings.route)
-                    },
-                    onNavigateToShared = {
-                        navController.navigate(Screen.Shared.route)
-                    },
-                    onNavigateToFavorites = {
-                        navController.navigate(Screen.Favorites.route)
-                    },
-                    onNavigateToRecycleBin = {
-                        navController.navigate(Screen.RecycleBin.route)
-                    },
-                    onNavigateToProfile = {
-                        navController.navigate(Screen.Profile.route)
-                    },
-                    onNavigateToAnnouncements = {
-                        navController.navigate(Screen.Announcements.route)
-                    }
-                )
-            }
-            composable(Screen.Settings.route) {
-                SettingsRoute(
-                    userPreferences = userPreferences,
-                    onLogout = onNavigateToLogin,
-                    onNavigateToAbout = {
-                        navController.navigate(Screen.About.route)
-                    },
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-            composable(Screen.About.route) {
-                AboutRoute(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-            composable(Screen.Shared.route) {
-                SharedRoute(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-            composable(Screen.Favorites.route) {
-                FavoritesRoute(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-            composable(Screen.RecycleBin.route) {
-                RecycleBinRoute(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-            composable(Screen.Profile.route) {
-                ProfileRoute(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-            composable(Screen.Announcements.route) {
-                AnnouncementsRoute(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
+                onDownloadClick = fileActions.onDownloadClick,
+                onMoveClick = fileActions.onMoveClick,
+                onCopyClick = fileActions.onCopyClick,
+                onFavoriteClick = fileActions.onFavoriteClick,
+                onRenameClick = fileActions.onRenameClick,
+                onDeleteClick = fileActions.onDeleteClick,
+                onShareClick = fileActions.onShareClick,
+                onDetailsClick = fileActions.onDetailsClick
+            )
         }
     }
 }

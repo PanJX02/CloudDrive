@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -89,11 +90,19 @@ fun FileRoute(
     // Callback to provide the implemented actions to the caller
     onActionsReady: (FileActions) -> Unit,
     // Callback when this route is disposed
-    onDispose: () -> Unit
+    onDispose: () -> Unit,
+    extraBottomSpace: Dp = 0.dp // 重命名参数为 extraBottomSpace
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currentPath by viewModel.currentPath.collectAsState()
     val selectedFiles = remember { mutableStateListOf<Long>() }
+
+    // 创建函数来清空选中文件
+    val clearSelection = {
+        if (selectedFiles.isNotEmpty()) {
+            selectedFiles.clear()
+        }
+    }
 
     // Define action implementations here, accessing viewModel and selectedFiles
     val fileActions = remember(selectedFiles.size) { // Re-create actions when selection changes
@@ -111,6 +120,14 @@ fun FileRoute(
         )
     }
 
+    // 处理目录导航
+    val handleNavigateToDirectory = { dirId: Long, dirName: String? ->
+        // 在导航前清空已选文件
+        clearSelection()
+        // 导航到新目录
+        viewModel.loadDirectoryContent(dirId, dirName)
+    }
+    
     // Provide the actions to the caller whenever they change
     LaunchedEffect(fileActions) {
         onActionsReady(fileActions)
@@ -136,7 +153,10 @@ fun FileRoute(
             } else {
                 selectedFiles.remove(fileId)
             }
-        }
+        },
+        onNavigateToDirectory = handleNavigateToDirectory, // 传递导航处理函数
+        clearSelection = clearSelection, // 传递清空选择函数
+        extraBottomSpace = extraBottomSpace // 传递额外底部空间
     )
 }
 
@@ -149,6 +169,9 @@ fun FileScreen(
     currentPath: List<Pair<Long, String>>,
     selectedFiles: List<Long>, // Receive selected files list
     onSelectChange: (fileId: Long, isSelected: Boolean) -> Unit, // Receive selection change handler
+    onNavigateToDirectory: (dirId: Long, dirName: String?) -> Unit, // 添加导航回调
+    clearSelection: () -> Unit, // 添加清空选择回调
+    extraBottomSpace: Dp = 0.dp, // 重命名参数为 extraBottomSpace
     toSearch: () -> Unit={},
     errorContent: @Composable (() -> Unit)? = null // Keep errorContent for flexibility if needed
 ) {
@@ -204,9 +227,13 @@ fun FileScreen(
         }
     )
 
-    // Back handler
+    // Back handler - 修改返回上一级的逻辑，先清空选择
     BackHandler(enabled = currentPath.size > 1) {
-        viewModel.navigateUp()
+        if (selectedFiles.isNotEmpty()) {
+            clearSelection()
+        } else {
+            viewModel.navigateUp()
+        }
     }
 
     // Bottom sheet content
@@ -253,7 +280,14 @@ fun FileScreen(
                 FileTopBar(
                     toSearch = {  },
                     showBackIcon = currentPath.size > 1,
-                    onNavigateUp = { viewModel.navigateUp() }
+                    onNavigateUp = { 
+                        // 点击返回按钮时先清空选择，如果没有选择才返回上一级
+                        if (selectedFiles.isNotEmpty()) {
+                            clearSelection()
+                        } else {
+                            viewModel.navigateUp() 
+                        }
+                    }
                 )
                 
                 // 面包屑导航，显示当前路径
@@ -290,8 +324,8 @@ fun FileScreen(
                                 else
                                     MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.clickable(enabled = index != currentPath.size - 1) {
-                                    // 点击路径导航到对应目录
-                                    viewModel.loadDirectoryContent(pathItem.first)
+                                    // 修改面包屑导航点击逻辑，使用通用的导航处理函数
+                                    onNavigateToDirectory(pathItem.first, null)
                                 }
                             )
                             if (index < currentPath.size - 1) {
@@ -411,9 +445,21 @@ fun FileScreen(
                                         file.id?.let { onSelectChange(it, isSelected) }
                                     },
                                     onFolderClick = { folderId, folderName ->
-                                        viewModel.loadDirectoryContent(folderId, folderName)
+                                        // 修改文件夹点击逻辑，使用通用的导航处理函数
+                                        onNavigateToDirectory(folderId, folderName)
                                     }
                                 )
+                            }
+                            
+                            // 添加底部空间，确保当 FileActionBar 显示时底部内容不被遮挡
+                            if (selectedFiles.isNotEmpty() && extraBottomSpace > 0.dp) {
+                                item {
+                                    Spacer(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(extraBottomSpace) // 使用计算出的额外需要的空间高度
+                                    )
+                                }
                             }
                         }
                     }
@@ -434,7 +480,10 @@ fun FileRoutePreview() {
             transfersViewModel = hiltViewModel(),
             currentPath = listOf(0L to "根目录"),
             selectedFiles = listOf(),
-            onSelectChange = { _, _ -> }
+            onSelectChange = { _, _ -> },
+            onNavigateToDirectory = { _, _ -> },
+            clearSelection = {},
+            extraBottomSpace = 90.dp // 添加默认的 extraBottomSpace 值
         )
     }
 }
