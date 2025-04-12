@@ -2,9 +2,11 @@ package com.panjx.clouddrive.feature.main
 
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.with
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -58,6 +60,7 @@ fun MainRote(
     MainScreen(finishPage, userPreferences, onNavigateToLogin)
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun MainScreen(
     finishPage: () -> Unit = {},
@@ -88,15 +91,29 @@ fun MainScreen(
                 targetState = fileActions.hasSelection,
                 label = "BottomBarAnimation",
                 transitionSpec = {
-                    // Define transitions based on target state change
+                    // Define transitions based on target state change - use sequential animation
                     if (targetState) {
-                        // Target is true (FileActionBar visible): slide in from bottom, slide out old (BottomBar) to bottom
-                        slideInVertically(initialOffsetY = { it }) togetherWith
-                                slideOutVertically(targetOffsetY = { it })
+                        // When selecting files:
+                        // 1. First, slide out the BottomBar (300ms)
+                        // 2. Then, slide in the FileActionBar
+                        slideInVertically(
+                            initialOffsetY = { it },
+                            animationSpec = tween(300, delayMillis = 300) // Delay start by 300ms (until exit completes)
+                        ) with slideOutVertically(
+                            targetOffsetY = { it },
+                            animationSpec = tween(300) // Exit takes 300ms
+                        )
                     } else {
-                        // Target is false (BottomBar visible): slide in from bottom, slide out old (FileActionBar) to bottom
-                        slideInVertically(initialOffsetY = { it }) togetherWith
-                                slideOutVertically(targetOffsetY = { it })
+                        // When unselecting files:
+                        // 1. First, slide out the FileActionBar (300ms)
+                        // 2. Then, slide in the BottomBar
+                        slideInVertically(
+                            initialOffsetY = { it },
+                            animationSpec = tween(300, delayMillis = 300) // Delay start by 300ms (until exit completes)
+                        ) with slideOutVertically(
+                            targetOffsetY = { it },
+                            animationSpec = tween(300) // Exit takes 300ms
+                        )
                     }
                 }
             ) { targetSelected -> // Content lambda receives the target state
