@@ -146,7 +146,7 @@ class KodoUtils {
                     Log.d(TAG, "上传操作被取消，将保存断点续传记录")
                     // 为了确保断点记录被保存，这里做一些操作
                     try {
-                        val recorderPath = "${Utils.sdkDirectory()}/recorder"
+                        /*val recorderPath = "${Utils.sdkDirectory()}/recorder"
                         val recorderDir = java.io.File(recorderPath)
                         if (recorderDir.exists()) {
                             Log.d(TAG, "断点续传目录存在: $recorderPath")
@@ -166,7 +166,7 @@ class KodoUtils {
                                     }
                                 }
                             }
-                        }
+                        }*/
                         
                         // 强制等待一些时间，确保断点记录文件被正确保存
                         Thread.sleep(500)
@@ -391,5 +391,107 @@ class KodoUtils {
         // 如果都不是，尝试返回URI路径
         Log.d(TAG, "使用URI路径: ${uri.path}")
         return uri.path
+    }
+
+    /**
+     * 删除指定key的断点续传记录
+     * @param key 上传使用的key
+     * @return 是否删除成功
+     */
+    fun deleteUploadRecord(key: String): Boolean {
+        try {
+            Log.d(TAG, "================ 开始删除断点续传记录 ================")
+            Log.d(TAG, "需要删除的记录key: $key")
+            val recorderPath = "${Utils.sdkDirectory()}/recorder"
+            Log.d(TAG, "断点续传记录目录: $recorderPath")
+            
+            // 记录删除前的文件列表
+            val recordDirBefore = java.io.File(recorderPath)
+            if (recordDirBefore.exists()) {
+                val filesBefore = recordDirBefore.listFiles()
+                if (filesBefore != null) {
+                    Log.d(TAG, "删除前的文件列表 (${filesBefore.size} 个文件):")
+                    filesBefore.forEachIndexed { index, file ->
+                        Log.d(TAG, "$index. ${file.name} (${file.length()} 字节)")
+                        if (file.name.contains(key)) {
+                            Log.d(TAG, "✓ 找到目标文件: ${file.name}, 大小: ${file.length()} 字节")
+                        }
+                    }
+                } else {
+                    Log.d(TAG, "删除前文件列表为空或无法读取")
+                }
+            } else {
+                Log.d(TAG, "记录目录不存在: $recorderPath")
+                return false
+            }
+            
+            // 调用SDK删除方法
+            Log.d(TAG, "调用SDK的断点记录删除方法: fileRecorder.del($key)")
+            val fileRecorder = FileRecorder(recorderPath)
+            fileRecorder.del(key)
+            Log.d(TAG, "SDK删除方法调用完成")
+            
+            // 记录删除后的文件列表并验证是否成功删除
+            val recordDirAfter = java.io.File(recorderPath)
+            if (recordDirAfter.exists()) {
+                val filesAfter = recordDirAfter.listFiles()
+                if (filesAfter != null) {
+                    Log.d(TAG, "删除后的文件列表 (${filesAfter.size} 个文件):")
+                    
+                    var targetFileStillExists = false
+                    var targetFilePath = ""
+                    
+                    filesAfter.forEachIndexed { index, file ->
+                        Log.d(TAG, "$index. ${file.name} (${file.length()} 字节)")
+                        if (file.name.contains(key)) {
+                            targetFileStillExists = true
+                            targetFilePath = file.absolutePath
+                            Log.w(TAG, "! 目标文件仍然存在: ${file.name}, 大小: ${file.length()} 字节")
+                        }
+                    }
+                    
+                    if (targetFileStillExists) {
+                        Log.w(TAG, "断点续传记录未被SDK方法完全删除")
+                        
+                        // 检查文件是否可读写
+                        val targetFile = java.io.File(targetFilePath)
+                        Log.d(TAG, "文件权限检查: 可读=${targetFile.canRead()}, 可写=${targetFile.canWrite()}, 可执行=${targetFile.canExecute()}")
+                        
+                        // 尝试使用文件系统直接删除
+                        Log.d(TAG, "尝试使用文件系统直接删除: ${targetFile.name}")
+                        val deleted = targetFile.delete()
+                        Log.d(TAG, "文件系统删除结果: $deleted")
+                        
+                        // 再次验证删除结果
+                        if (deleted) {
+                            Log.d(TAG, "文件已通过文件系统方法成功删除")
+                        } else {
+                            Log.e(TAG, "文件系统方法删除失败，尝试调用deleteOnExit")
+                            targetFile.deleteOnExit()
+                            
+                            // 检查文件是否仍然存在
+                            val stillExists = targetFile.exists()
+                            Log.d(TAG, "文件在deleteOnExit后仍然存在: $stillExists")
+                        }
+                        
+                        return deleted
+                    } else {
+                        Log.d(TAG, "目标文件已成功删除，未在文件列表中找到")
+                    }
+                } else {
+                    Log.d(TAG, "删除后文件列表为空或无法读取")
+                }
+            }
+            
+            Log.d(TAG, "断点续传记录已成功删除")
+            Log.d(TAG, "================ 删除断点续传记录完成 ================")
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "删除断点续传记录时出错", e)
+            Log.e(TAG, "异常类型: ${e.javaClass.simpleName}")
+            Log.e(TAG, "异常信息: ${e.message}")
+            e.printStackTrace()
+            return false
+        }
     }
 }

@@ -5,15 +5,11 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,138 +70,146 @@ import com.panjx.clouddrive.util.FileUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+// Data class to hold action callbacks
+data class FileActions(
+    val onDownloadClick: () -> Unit = {},
+    val onMoveClick: () -> Unit = {},
+    val onCopyClick: () -> Unit = {},
+    val onFavoriteClick: () -> Unit = {},
+    val onRenameClick: () -> Unit = {},
+    val onDeleteClick: () -> Unit = {},
+    val onShareClick: () -> Unit = {},
+    val onDetailsClick: () -> Unit = {},
+    val hasSelection: Boolean = false // Indicates if there are selected items
+)
+
 @Composable
 fun FileRoute(
-    viewModel: FileViewModel = viewModel()
+    viewModel: FileViewModel = viewModel(),
+    // Callback to provide the implemented actions to the caller
+    onActionsReady: (FileActions) -> Unit,
+    // Callback when this route is disposed
+    onDispose: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currentPath by viewModel.currentPath.collectAsState()
-    
-    when (uiState) {
-        is FileUiState.Loading -> {
-            // 显示带有TopBar的加载界面
-            FileScreen(
-                files = emptyList(),
-                viewModel = viewModel,
-                transfersViewModel = hiltViewModel(),
-                isListLoading = true
-            )
-        }
-        is FileUiState.Error -> {
-            // 错误界面包装到FileScreen中以显示TopBar
-            FileScreen(
-                files = emptyList(),
-                viewModel = viewModel,
-                transfersViewModel = hiltViewModel(),
-                isListLoading = false,
-                errorContent = {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = (uiState as FileUiState.Error).message)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { viewModel.loadData() }) {
-                            Text("重试")
-                        }
-                    }
-                }
-            )
-        }
-        is FileUiState.Success -> {
-            FileScreen(
-                files = (uiState as FileUiState.Success).files,
-                viewModel = viewModel,
-                transfersViewModel = hiltViewModel(),
-                isListLoading = false
-            )
-        }
-        is FileUiState.ListLoading -> {
-            FileScreen(
-                files = emptyList(),
-                viewModel = viewModel,
-                transfersViewModel = hiltViewModel(),
-                isListLoading = true
-            )
+    val selectedFiles = remember { mutableStateListOf<Long>() }
+
+    // Define action implementations here, accessing viewModel and selectedFiles
+    val fileActions = remember(selectedFiles.size) { // Re-create actions when selection changes
+        val hasSelection = selectedFiles.isNotEmpty()
+        FileActions(
+            onDownloadClick = { Log.d("FileRoute", "Download clicked: ${selectedFiles.toList()}") /* TODO: viewModel.download(selectedFiles) */ },
+            onMoveClick = { Log.d("FileRoute", "Move clicked: ${selectedFiles.toList()}") /* TODO: viewModel.move(selectedFiles) */ },
+            onCopyClick = { Log.d("FileRoute", "Copy clicked: ${selectedFiles.toList()}") /* TODO: viewModel.copy(selectedFiles) */ },
+            onFavoriteClick = { Log.d("FileRoute", "Favorite clicked: ${selectedFiles.toList()}") /* TODO: viewModel.favorite(selectedFiles) */ },
+            onRenameClick = { Log.d("FileRoute", "Rename clicked: ${selectedFiles.toList()}") /* TODO: viewModel.rename(selectedFiles) */ },
+            onDeleteClick = { Log.d("FileRoute", "Delete clicked: ${selectedFiles.toList()}") /* TODO: viewModel.delete(selectedFiles) */ },
+            onShareClick = { Log.d("FileRoute", "Share clicked: ${selectedFiles.toList()}") /* TODO: viewModel.share(selectedFiles) */ },
+            onDetailsClick = { Log.d("FileRoute", "Details clicked: ${selectedFiles.toList()}") /* TODO: viewModel.details(selectedFiles) */ },
+            hasSelection = hasSelection
+        )
+    }
+
+    // Provide the actions to the caller whenever they change
+    LaunchedEffect(fileActions) {
+        onActionsReady(fileActions)
+    }
+
+    // Notify caller when this Composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            onDispose()
         }
     }
+
+    // Pass selectedFiles down to FileScreen
+    FileScreen(
+        uiState = uiState,
+        viewModel = viewModel,
+        transfersViewModel = hiltViewModel(),
+        currentPath = currentPath,
+        selectedFiles = selectedFiles, // Pass the list down
+        onSelectChange = { fileId, isSelected -> // Handle selection changes here
+            if (isSelected) {
+                selectedFiles.add(fileId)
+            } else {
+                selectedFiles.remove(fileId)
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileScreen(
+    uiState: FileUiState,
+    viewModel: FileViewModel,
+    transfersViewModel: TransfersViewModel,
+    currentPath: List<Pair<Long, String>>,
+    selectedFiles: List<Long>, // Receive selected files list
+    onSelectChange: (fileId: Long, isSelected: Boolean) -> Unit, // Receive selection change handler
     toSearch: () -> Unit={},
-    files: List<File> = listOf(),
-    viewModel: FileViewModel = viewModel(),
-    transfersViewModel: TransfersViewModel = hiltViewModel(),
-    isListLoading: Boolean = false,
-    errorContent: @Composable (() -> Unit)? = null
+    errorContent: @Composable (() -> Unit)? = null // Keep errorContent for flexibility if needed
 ) {
-    var showSearchBar by remember { mutableStateOf(false) }
+    // Determine files and loading state from uiState
+    val (files, isListLoading) = when (uiState) {
+        is FileUiState.Success -> uiState.files to false
+        is FileUiState.ListLoading -> emptyList<File>() to true
+        is FileUiState.Loading -> emptyList<File>() to true // Consider full screen loading state
+        is FileUiState.Error -> emptyList<File>() to false // Error state implies loading finished (with error)
+    }
+
     var showBottomSheet by remember { mutableStateOf(false) }
-    val fileList = remember(files) { mutableStateListOf(*files.toTypedArray()) }
-    val selectedFiles = remember { mutableStateListOf<Long>() }
-    val currentPath by viewModel.currentPath.collectAsState()
-    val currentDirId by viewModel.currentDirId.collectAsState()
-    
-    // 协程作用域
+    val currentDirId by viewModel.currentDirId.collectAsState() // Needed for upload
+
+    // Coroutine scope & Context
     val coroutineScope = rememberCoroutineScope()
-    
-    // 获取Context
     val context = LocalContext.current
-    
-    // 文件选择器
+
+    // File picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            // 获取文件基本信息
-            val fileInfo = FileUtils.getFileInfoFromUri(context, it)
-            Log.d("FileRoute", "选择文件：${fileInfo["name"]}, 大小：${fileInfo["formattedSize"]}, URI: $it")
-            
-            coroutineScope.launch {
-                // 处理文件名，如果包含扩展名则去掉
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                try {
+                    val contentResolver = context.contentResolver
+                    val takeFlags: Int = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    contentResolver.takePersistableUriPermission(it, takeFlags)
+                    Log.d("FileRoute", "成功获取持久化URI权限: $it")
+                } catch (e: SecurityException) {
+                    Log.e("FileRoute", "无法获取持久化URI权限: $it", e)
+                    return@let
+                }
+                val fileInfo = FileUtils.getFileInfoFromUri(context, it)
                 val fullFileName = fileInfo["name"] as? String ?: "未知文件"
                 val extension = fileInfo["extension"] as? String ?: ""
-                
-                // 从文件名中去掉扩展名
                 val fileName = if (extension.isNotEmpty() && fullFileName.endsWith(".$extension", ignoreCase = true)) {
                     fullFileName.substring(0, fullFileName.length - extension.length - 1)
                 } else {
                     fullFileName
                 }
-                
-                Log.d("FileRoute", "处理后的文件名: $fileName, 扩展名: $extension")
-                
-                // 使用自动上传流程，替代原来的单独添加上传任务的方法
-                Log.d("FileRoute", "调用transfersViewModel.autoUploadProcess")
-                transfersViewModel.autoUploadProcess(
-                    uri = it,
-                    fileName = fileName,
-                    fileSize = fileInfo["size"] as? Long ?: 0L,
-                    fileExtension = extension,
-                    fileCategory = fileInfo["mimeType"] as? String ?: "",
-                    filePid = currentDirId,
-                    context = context
-                )
+                coroutineScope.launch {
+                    transfersViewModel.autoUploadProcess(
+                        uri = it,
+                        fileName = fileName,
+                        fileSize = fileInfo["size"] as? Long ?: 0L,
+                        fileExtension = extension,
+                        fileCategory = fileInfo["mimeType"] as? String ?: "",
+                        filePid = currentDirId,
+                        context = context
+                    )
+                }
             }
         }
-    }
+    )
 
-    // 处理返回键事件
+    // Back handler
     BackHandler(enabled = currentPath.size > 1) {
         viewModel.navigateUp()
     }
 
-    fun handleSelectChange(fileId: Long, isSelected: Boolean) {
-        if (isSelected) {
-            selectedFiles.add(fileId)
-        } else {
-            selectedFiles.remove(fileId)
-        }
-    }
-
+    // Bottom sheet content
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
@@ -220,43 +225,23 @@ fun FileScreen(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
                 ListItem(
                     headlineContent = { Text("上传文件") },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Default.Upload,
-                            contentDescription = "上传文件"
-                        )
-                    },
+                    leadingContent = { Icon(Icons.Default.Upload, "上传文件") },
                     modifier = Modifier.clickable { 
-                        // 关闭底部菜单
                         showBottomSheet = false
-                        // 启动文件选择器
-                        filePickerLauncher.launch("*/*")
+                        filePickerLauncher.launch(arrayOf("*/*"))
                     }
                 )
-                
                 ListItem(
                     headlineContent = { Text("新建文件夹") },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Default.CreateNewFolder,
-                            contentDescription = "新建文件夹"
-                        )
-                    },
-                    modifier = Modifier.clickable { /* TODO: 处理新建文件夹 */ }
+                    leadingContent = { Icon(Icons.Default.CreateNewFolder, "新建文件夹") },
+                    modifier = Modifier.clickable { /* TODO */ }
                 )
-                
                 ListItem(
                     headlineContent = { Text("扫描文件") },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Default.Scanner,
-                            contentDescription = "扫描文件"
-                        )
-                    },
-                    modifier = Modifier.clickable { /* TODO: 处理扫描文件 */ }
+                    leadingContent = { Icon(Icons.Default.Scanner, "扫描文件") },
+                    modifier = Modifier.clickable { /* TODO */ }
                 )
             }
         }
@@ -389,102 +374,49 @@ fun FileScreen(
                 onRefresh = { viewModel.loadData()},
                 modifier = Modifier.fillMaxSize()
             ) {
-                if (isListLoading) {
-                    // 显示列表加载状态
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        contentAlignment = Alignment.Center
-                    ) {
+                if (isListLoading && files.isEmpty()) { // Show loading only if list is truly empty during load
+                    Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                } else if (errorContent != null) {
-                    // 显示错误内容
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        errorContent()
+                } else if (uiState is FileUiState.Error) {
+                     Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = uiState.message)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = { viewModel.loadData() }) { Text("重试") }
+                        }
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier
-                            .padding(innerPadding)
-                            .padding(bottom = if (selectedFiles.isNotEmpty()) 40.dp else 0.dp)
+                        modifier = Modifier.padding(innerPadding) // No extra bottom padding needed now
                     ) {
-                        if (fileList.isEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 100.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CreateNewFolder,
-                                            contentDescription = "空文件夹",
-                                            modifier = Modifier.size(60.dp),
-                                            tint = MaterialTheme.colorScheme.outline
-                                        )
+                        if (files.isEmpty() && !isListLoading) {
+                             item { 
+                                Box(modifier = Modifier.fillMaxWidth().padding(top = 100.dp), contentAlignment = Alignment.Center) {
+                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.CreateNewFolder, "空文件夹", modifier = Modifier.size(60.dp), tint = MaterialTheme.colorScheme.outline)
                                         Spacer(modifier = Modifier.height(16.dp))
-                                        Text(
-                                            text = "此文件夹为空",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Text("此文件夹为空", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "点击右下角的 + 按钮添加文件",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
+                                        Text("点击右下角的 + 按钮添加文件", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outline)
                                     }
                                 }
-                            }
+                            } 
                         } else {
-                            items(fileList, key = { it.id!! }) { file ->
+                            items(files, key = { it.id!! }) { file ->
                                 ItemFile(
                                     data = file,
                                     isSelected = selectedFiles.contains(file.id),
-                                    onSelectChange = { isSelected ->
-                                        file.id?.let { handleSelectChange(it, isSelected) }
+                                    onSelectChange = { isSelected -> // Use the passed handler
+                                        file.id?.let { onSelectChange(it, isSelected) }
                                     },
                                     onFolderClick = { folderId, folderName ->
-                                        // 点击文件夹，加载文件夹内容
                                         viewModel.loadDirectoryContent(folderId, folderName)
                                     }
                                 )
                             }
                         }
                     }
-                }
-            }
-
-
-            AnimatedVisibility(
-                visible = selectedFiles.isNotEmpty(),
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it }),
-                modifier = Modifier.align(Alignment.BottomCenter)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "已选中 ${selectedFiles.size} 个文件",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
                 }
             }
         }
@@ -495,6 +427,14 @@ fun FileScreen(
 @Composable
 fun FileRoutePreview() {
     MyAppTheme {
-        FileScreen()
+        // Preview needs adjustment as FileScreen signature changed
+        FileScreen(
+            uiState = FileUiState.Success(listOf()), // Example state
+            viewModel = viewModel(), // Use a preview ViewModel or mock
+            transfersViewModel = hiltViewModel(),
+            currentPath = listOf(0L to "根目录"),
+            selectedFiles = listOf(),
+            onSelectChange = { _, _ -> }
+        )
     }
 }

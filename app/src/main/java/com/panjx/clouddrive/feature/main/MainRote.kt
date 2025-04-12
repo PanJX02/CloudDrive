@@ -1,7 +1,14 @@
 package com.panjx.clouddrive.feature.main
 
 import android.util.Log
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -17,8 +24,12 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -28,7 +39,9 @@ import com.panjx.clouddrive.data.UserPreferences
 import com.panjx.clouddrive.feature.about.AboutRoute
 import com.panjx.clouddrive.feature.announcements.AnnouncementsRoute
 import com.panjx.clouddrive.feature.favorites.FavoritesRoute
+import com.panjx.clouddrive.feature.fileRoute.FileActions
 import com.panjx.clouddrive.feature.fileRoute.FileRoute
+import com.panjx.clouddrive.feature.fileRoute.component.FileActionBar
 import com.panjx.clouddrive.feature.meRoute.MeRoute
 import com.panjx.clouddrive.feature.profile.ProfileRoute
 import com.panjx.clouddrive.feature.recycleBin.RecycleBinRoute
@@ -65,26 +78,74 @@ fun MainScreen(
 
     // 判断是否显示底部导航栏
     val shouldShowBottomBar = currentDestination?.route in items.map { it.route }
+    // 状态：持有来自 FileRoute 的操作回调
+    var fileActions by remember { mutableStateOf(FileActions()) }
 
     Scaffold(
         bottomBar = {
-            if (shouldShowBottomBar) {
-                BottomBar(
-                    navController = navController,
-                    items = items
-                )
+            // Use AnimatedContent for controlled transitions
+            AnimatedContent(
+                targetState = fileActions.hasSelection,
+                label = "BottomBarAnimation",
+                transitionSpec = {
+                    // Define transitions based on target state change
+                    if (targetState) {
+                        // Target is true (FileActionBar visible): slide in from bottom, slide out old (BottomBar) to bottom
+                        slideInVertically(initialOffsetY = { it }) togetherWith
+                                slideOutVertically(targetOffsetY = { it })
+                    } else {
+                        // Target is false (BottomBar visible): slide in from bottom, slide out old (FileActionBar) to bottom
+                        slideInVertically(initialOffsetY = { it }) togetherWith
+                                slideOutVertically(targetOffsetY = { it })
+                    }
+                }
+            ) { targetSelected -> // Content lambda receives the target state
+                // Display content based on the target state
+                if (targetSelected) {
+                    FileActionBar(
+                        modifier = Modifier.fillMaxWidth(), // Fill width within AnimatedContent
+                        onDownloadClick = fileActions.onDownloadClick,
+                        onMoveClick = fileActions.onMoveClick,
+                        onCopyClick = fileActions.onCopyClick,
+                        onFavoriteClick = fileActions.onFavoriteClick,
+                        onRenameClick = fileActions.onRenameClick,
+                        onDeleteClick = fileActions.onDeleteClick,
+                        onShareClick = fileActions.onShareClick,
+                        onDetailsClick = fileActions.onDetailsClick
+                    )
+                } else if (shouldShowBottomBar) { // Also check if the standard bottom bar should be shown
+                    BottomBar(
+                        navController = navController,
+                        items = items
+                    )
+                } else {
+                    // Optional: Provide an empty Box or Spacer if neither should be shown
+                    // but AnimatedContent needs some content.
+                    Box(modifier = Modifier.fillMaxWidth().height(80.dp)) // Maintain height
+                }
             }
         },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0) // 禁用默认内边距
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = Screen.File.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding) // 让 NavHost 内容填充 Scaffold 提供的区域
         ) {
-            composable(Screen.File.route) { FileRoute() }
+            composable(Screen.File.route) {
+                FileRoute(
+                    // 提供回调以接收 FileActions
+                    onActionsReady = { actions ->
+                        fileActions = actions
+                    },
+                    // 提供回调以在 FileRoute 离开时重置 Actions
+                    onDispose = { 
+                        fileActions = FileActions() // Reset actions when FileRoute leaves
+                    }
+                )
+            }
             composable(Screen.Transfers.route) { TransfersRoute() }
-            composable(Screen.Me.route) { 
+            composable(Screen.Me.route) {
                 MeRoute(
                     onNavigateToSettings = {
                         navController.navigate(Screen.Settings.route)

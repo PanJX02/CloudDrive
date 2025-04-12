@@ -10,4 +10,5 @@ enum class TransferStatus {
     HASH_CALCULATED,      // 哈希计算完成 (只用于上传)
     UPLOAD_STORAGE_COMPLETED, // 上传到存储完成，但未通知服务器完成
     CANCELLING,           // 正在取消中 (等待上传/下载线程结束)
+    WAITING_FOR_PERMISSION,
 } 

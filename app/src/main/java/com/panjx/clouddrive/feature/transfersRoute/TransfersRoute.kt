@@ -334,6 +334,7 @@ fun TransferTaskItem(
                         TransferStatus.HASH_CALCULATED -> "计算完成"
                         TransferStatus.UPLOAD_STORAGE_COMPLETED -> "等待确认"
                         TransferStatus.CANCELLING -> "取消中"
+                        TransferStatus.WAITING_FOR_PERMISSION -> "等待权限"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 4.dp)
