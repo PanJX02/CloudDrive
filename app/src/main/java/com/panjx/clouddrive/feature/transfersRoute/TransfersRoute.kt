@@ -714,7 +714,7 @@ fun FileInfoDialog(
                 }
                 
                 // 普通操作按钮
-                Button(
+              Button(
                     onClick = {
                         // 根据状态决定点击行为
                         when (transfer.status) {

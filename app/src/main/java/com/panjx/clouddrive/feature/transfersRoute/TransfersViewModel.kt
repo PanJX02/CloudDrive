@@ -78,109 +78,6 @@ class TransfersViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    // 添加模拟数据用于测试
-    fun addSampleData() {
-        viewModelScope.launch {
-            // 添加上传任务
-            transferRepository.addTransfer(
-                fileName = "文档1",
-                progress = 75,
-                status = TransferStatus.IN_PROGRESS,
-                type = TransferType.UPLOAD,
-                filePath = "/storage/emulated/0/Documents/文档1.doc",
-                fileExtension = "doc",
-                fileCategory = "application/msword",
-                fileSize = 15360,
-                userId = 1001,
-                fileMD5 = "d41d8cd98f00b204e9800998ecf8427e",
-                folderType = 0,
-                domain = "https://storage.example.com",
-                uploadToken = "upload_token_123456"
-            )
-
-            transferRepository.addTransfer(
-                fileName = "图片1",
-                progress = 100,
-                status = TransferStatus.COMPLETED,
-                type = TransferType.UPLOAD,
-                filePath = "/storage/emulated/0/Pictures/图片1.jpg",
-                fileExtension = "jpg",
-                fileCategory = "image/jpeg",
-                fileSize = 102400,
-                userId = 1001,
-                fileMD5 = "e99a18c428cb38d5f260853678922e03",
-                folderType = 0,
-                fileCover = "/storage/emulated/0/Pictures/图片1_thumbnail.jpg",
-                domain = "https://img.example.com",
-                uploadToken = "upload_token_789012"
-            )
-
-            transferRepository.addTransfer(
-                fileName = "视频1",
-                progress = 30,
-                status = TransferStatus.PAUSED,
-                type = TransferType.UPLOAD,
-                filePath = "/storage/emulated/0/Movies/视频1.mp4",
-                fileExtension = "mp4",
-                fileCategory = "video/mp4",
-                fileSize = 10485760,
-                userId = 1001,
-                fileMD5 = "a87ff679a2f3e71d9181a67b7542122c",
-                folderType = 0,
-                transcodeStatus = 0,
-                domain = "https://video.example.com",
-                uploadToken = "upload_token_345678"
-            )
-
-            // 添加下载任务
-            transferRepository.addTransfer(
-                fileName = "文档2",
-                progress = 50,
-                status = TransferStatus.IN_PROGRESS,
-                type = TransferType.DOWNLOAD,
-                filePath = "/storage/emulated/0/Download/文档2.doc",
-                remoteUrl = "https://example.com/files/文档2.doc",
-                fileExtension = "doc",
-                fileCategory = "application/msword",
-                fileSize = 25600,
-                userId = 1001,
-                fileId = 2001,
-                folderType = 0
-            )
-
-            transferRepository.addTransfer(
-                fileName = "图片2",
-                progress = 0,
-                status = TransferStatus.WAITING,
-                type = TransferType.DOWNLOAD,
-                filePath = "/storage/emulated/0/Download/图片2.jpg",
-                remoteUrl = "https://example.com/files/图片2.jpg",
-                fileExtension = "jpg",
-                fileCategory = "image/jpeg",
-                fileSize = 51200,
-                userId = 1001,
-                fileId = 2002,
-                folderType = 0,
-                fileCover = "https://example.com/files/图片2_thumbnail.jpg"
-            )
-
-            transferRepository.addTransfer(
-                fileName = "视频2",
-                progress = 100,
-                status = TransferStatus.COMPLETED,
-                type = TransferType.DOWNLOAD,
-                filePath = "/storage/emulated/0/Download/视频2.mp4",
-                remoteUrl = "https://example.com/files/视频2.mp4",
-                fileExtension = "mp4",
-                fileCategory = "video/mp4",
-                fileSize = 20971520,
-                userId = 1001,
-                fileId = 2003,
-                folderType = 0,
-                transcodeStatus = 2
-            )
-        }
-    }
 
     fun pauseOrResumeTransfer(transfer: TransferEntity, context: Context? = null) {
         viewModelScope.launch {
@@ -193,59 +90,72 @@ class TransfersViewModel @Inject constructor(
                 TransferStatus.IN_PROGRESS
             } else {
                 // 如果当前是其他状态，改为暂停并设置取消标志
-                if (transfer.type == TransferType.UPLOAD) {
-                    val kodoUtils = KodoUtils()
-                    if (kodoUtils.pauseUpload(transfer.id)) {
-                        // 重要：先更新数据库状态，再给断点续传足够的时间来保存记录
-                        // 更新数据库中的状态为暂停
-                        transferRepository.updateTransfer(
-                            transfer.copy(status = TransferStatus.PAUSED)
-                        )
+                if (activeUploadTasks.containsKey(transfer.id)) {
+                    // 设置取消标志为true，这将在上传过程中通过取消回调检查
+                    activeUploadTasks[transfer.id] = true
+                    Log.d("TransfersViewModel", "设置任务暂停标志: ${transfer.id}")
 
-                        // 为了确保断点续传记录保存，需要等待一定时间
-                        Log.d("TransfersViewModel", "等待保存断点续传记录...")
+                    // 重要：先更新数据库状态，再给断点续传足够的时间来保存记录
+                    // 更新数据库中的状态为暂停
+                    transferRepository.updateTransfer(
+                        transfer.copy(status = TransferStatus.PAUSED)
+                    )
 
-                        // 等待更长时间，增加至2000毫秒，给断点续传足够的时间来保存记录
-                        kotlinx.coroutines.delay(2000)
+                    // 为了确保断点续传记录保存，需要等待一定时间
+                    Log.d("TransfersViewModel", "等待保存断点续传记录...")
 
-                        // 检查断点续传记录是否保存成功
-                        try {
-                            // 使用与上传相同的key格式 - 支持新的SHA256分层结构
-                            var uploadKey: String
-                            if (transfer.fileSHA256 != null && transfer.fileSHA256.isNotEmpty()) {
-                                uploadKey = kodoUtils.generateLayeredKey(transfer.fileSHA256)
-                            } else {
-                                uploadKey = "tr${transfer.id}${transfer.fileMD5?.take(8) ?: ""}"
-                            }
+                    // 等待更长时间，增加至2000毫秒，给断点续传足够的时间来保存记录
+                    kotlinx.coroutines.delay(2000)
 
-                            val recorderPath =
-                                "${com.qiniu.android.utils.Utils.sdkDirectory()}/recorder"
-                            val recordDir = java.io.File(recorderPath)
-                            if (recordDir.exists()) {
-                                val files = recordDir.listFiles()
-                                if (files != null) {
-                                    var foundRecord = false
-                                    for (file in files) {
-                                        if (file.name.contains(uploadKey)) {
-                                            Log.d(
-                                                "TransfersViewModel",
-                                                "暂停时检测到断点续传记录: ${file.name}, 大小: ${file.length()}"
-                                            )
-                                            foundRecord = true
-                                        }
-                                    }
-                                    if (!foundRecord) {
-                                        Log.w(
+                    // 检查断点续传记录是否保存成功
+                    try {
+                        // 使用与上传相同的key格式 - 支持新的SHA256分层结构
+                        var uploadKey: String
+                        if (transfer.fileSHA256 != null && transfer.fileSHA256.isNotEmpty()) {
+                            val kodoUtils = KodoUtils()
+                            uploadKey = kodoUtils.generateLayeredKey(transfer.fileSHA256)
+                        } else {
+                            uploadKey = "tr${transfer.id}${transfer.fileMD5?.take(8) ?: ""}"
+                        }
+
+                        val recorderPath =
+                            "${com.qiniu.android.utils.Utils.sdkDirectory()}/recorder"
+                        val recordDir = java.io.File(recorderPath)
+                        if (recordDir.exists()) {
+                            val files = recordDir.listFiles()
+                            if (files != null) {
+                                var foundRecord = false
+                                for (file in files) {
+                                    if (file.name.contains(uploadKey)) {
+                                        Log.d(
                                             "TransfersViewModel",
-                                            "未找到断点续传记录，可能无法恢复上传进度"
+                                            "暂停时检测到断点续传记录: ${file.name}, 大小: ${file.length()}"
                                         )
+                                        foundRecord = true
                                     }
                                 }
+                                if (!foundRecord) {
+                                    Log.w(
+                                        "TransfersViewModel",
+                                        "未找到断点续传记录，可能无法恢复上传进度"
+                                    )
+                                }
                             }
-                        } catch (e: Exception) {
-                            Log.e("TransfersViewModel", "检查断点续传记录失败", e)
                         }
+
+                        // 使用七牛SDK原生方法处理Content URI，不再需要检查临时文件
+                        if (transfer.filePath.startsWith("content://") && context != null) {
+                            Log.d(
+                                "TransfersViewModel",
+                                "使用Content URI上传，七牛SDK原生支持断点续传"
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Log.e("TransfersViewModel", "检查断点续传记录失败", e)
                     }
+
+                    // 此处不再需要更新状态，因为在尝试取消上传前已经更新了
+                    return@launch  // 直接返回，因为已经在开始处理暂停
                 }
                 TransferStatus.PAUSED
             }
@@ -262,75 +172,76 @@ class TransfersViewModel @Inject constructor(
                 !transfer.uploadToken.isNullOrEmpty() &&
                 context != null
             ) {
-                val kodoUtils = KodoUtils()
-                // 恢复上传
-                if (kodoUtils.resumeUpload(transfer.id)) {
-                    // 重新上传
-                    Log.d(
-                        "TransfersViewModel",
-                        "恢复上传任务: ${transfer.id}, 文件名: ${transfer.fileName}"
-                    )
-                    Log.d("TransfersViewModel", "使用断点续传功能，将继续之前的上传进度")
+                // 移除旧的取消标志（如果存在）
+                activeUploadTasks.remove(transfer.id)
+                // 重新上传
+                Log.d(
+                    "TransfersViewModel",
+                    "恢复上传任务: ${transfer.id}, 文件名: ${transfer.fileName}"
+                )
+                Log.d("TransfersViewModel", "使用断点续传功能，将继续之前的上传进度")
 
-                    // 尝试开始上传处理，startUploadFile方法已修改以支持IN_PROGRESS状态
-                    startUploadFile(transfer.id, context)
-                }
+                // 尝试开始上传处理，startUploadFile方法已修改以支持IN_PROGRESS状态
+                startUploadFile(transfer.id, context)
             }
         }
     }
 
     fun cancelTransfer(transfer: TransferEntity) {
         viewModelScope.launch {
-            if (transfer.type == TransferType.UPLOAD) {
-                val kodoUtils = KodoUtils()
-                if (kodoUtils.cancelUpload(transfer.id)) {
-                    // 重要：先更新任务状态为取消中，避免上传线程继续更新
-                    // 更新数据库中的状态为取消中
-                    val updatedTask = transfer.copy(status = TransferStatus.CANCELLING)
-                    transferRepository.updateTransfer(updatedTask)
-                    Log.d("TransfersViewModel", "更新任务状态为取消中: ${transfer.id}")
+            // 首先检查是否有活跃上传
+            if (activeUploadTasks.containsKey(transfer.id)) {
+                // 设置取消标志为true
+                activeUploadTasks[transfer.id] = true
+                Log.d("TransfersViewModel", "设置任务取消标志: ${transfer.id}")
 
-                    // 如果任务正在上传中，先等待一段时间让上传操作有机会响应取消标志
-                    if (transfer.status == TransferStatus.IN_PROGRESS) {
-                        Log.d("TransfersViewModel", "等待上传操作响应取消标志...")
-                        // 等待3秒，让上传操作有足够的时间响应取消标志并停止尝试更新数据库
-                        kotlinx.coroutines.delay(3000)
-                    }
+                // 重要：先更新任务状态为取消中，避免上传线程继续更新
+                // 更新数据库中的状态为取消中
+                val updatedTask = transfer.copy(status = TransferStatus.CANCELLING)
+                transferRepository.updateTransfer(updatedTask)
+                Log.d("TransfersViewModel", "更新任务状态为取消中: ${transfer.id}")
 
-                    // 清理断点续传记录
-                    try {
-                        // 生成上传key（保持与上传时相同的逻辑）
-                        var uploadKey: String
-                        if (transfer.fileSHA256 != null && transfer.fileSHA256.isNotEmpty()) {
-                            uploadKey = kodoUtils.generateLayeredKey(transfer.fileSHA256)
-                        } else {
-                            uploadKey = "tr${transfer.id}${transfer.fileMD5?.take(8) ?: ""}"
-                        }
+                // 如果任务正在上传中，先等待一段时间让上传操作有机会响应取消标志
+                if (transfer.status == TransferStatus.IN_PROGRESS) {
+                    Log.d("TransfersViewModel", "等待上传操作响应取消标志...")
+                    // 等待3秒，让上传操作有足够的时间响应取消标志并停止尝试更新数据库
+                    kotlinx.coroutines.delay(3000)
+                }
+            }
 
-                        // 删除断点续传记录
-                        val recorderPath = "${com.qiniu.android.utils.Utils.sdkDirectory()}/recorder"
-                        val recordDir = java.io.File(recorderPath)
-                        if (recordDir.exists()) {
-                            val files = recordDir.listFiles()
-                            if (files != null) {
-                                for (file in files) {
-                                    if (file.name.contains(uploadKey)) {
-                                        val deleted = file.delete()
-                                        Log.d(
-                                            "TransfersViewModel",
-                                            "删除断点续传记录: ${file.name}, 结果: $deleted"
-                                        )
-                                    }
-                                }
+            // 清理与此任务相关的取消标志
+            activeUploadTasks.remove(transfer.id)
+
+            // 清理断点续传记录
+            try {
+                // 生成上传key（保持与上传时相同的逻辑）
+                var uploadKey: String
+                if (transfer.fileSHA256 != null && transfer.fileSHA256.isNotEmpty()) {
+                    val kodoUtils = KodoUtils()
+                    uploadKey = kodoUtils.generateLayeredKey(transfer.fileSHA256)
+                } else {
+                    uploadKey = "tr${transfer.id}${transfer.fileMD5?.take(8) ?: ""}"
+                }
+
+                // 删除断点续传记录
+                val recorderPath = "${com.qiniu.android.utils.Utils.sdkDirectory()}/recorder"
+                val recordDir = java.io.File(recorderPath)
+                if (recordDir.exists()) {
+                    val files = recordDir.listFiles()
+                    if (files != null) {
+                        for (file in files) {
+                            if (file.name.contains(uploadKey)) {
+                                val deleted = file.delete()
+                                Log.d(
+                                    "TransfersViewModel",
+                                    "删除断点续传记录: ${file.name}, 结果: $deleted"
+                                )
                             }
                         }
-                    } catch (e: Exception) {
-                        Log.e("TransfersViewModel", "清理断点续传记录失败", e)
                     }
-
-                    // 清理任务状态
-                    kodoUtils.cleanupUploadTask(transfer.id)
                 }
+            } catch (e: Exception) {
+                Log.e("TransfersViewModel", "清理断点续传记录失败", e)
             }
 
             // 最后从数据库中删除任务

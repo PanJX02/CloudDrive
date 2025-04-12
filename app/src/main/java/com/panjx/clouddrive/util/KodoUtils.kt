@@ -12,7 +12,6 @@ import com.qiniu.android.storage.UploadManager
 import com.qiniu.android.storage.UploadOptions
 import com.qiniu.android.utils.Utils
 import java.io.IOException
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 七牛云上传管理工具类
@@ -22,69 +21,11 @@ class KodoUtils {
         const val TAG = "QiniuUpload"
         // 添加静态uploadManager，确保在应用生命周期内只创建一次
         private var staticUploadManager: UploadManager? = null
-        
-        // 使用ConcurrentHashMap来跟踪活跃的上传任务
-        // Key是传输任务的ID，Value是取消标志
-        private val activeUploadTasks = ConcurrentHashMap<Long, Boolean>()
     }
     
     // 使用companion object的静态uploadManager
     private val uploadManager: UploadManager?
         get() = staticUploadManager
-    
-    /**
-     * 暂停上传任务
-     * @param transferId 传输任务ID
-     * @return 是否成功设置暂停标志
-     */
-    fun pauseUpload(transferId: Long): Boolean {
-        if (activeUploadTasks.containsKey(transferId)) {
-            activeUploadTasks[transferId] = true
-            Log.d(TAG, "设置任务暂停标志: $transferId")
-            return true
-        }
-        return false
-    }
-    
-    /**
-     * 恢复上传任务
-     * @param transferId 传输任务ID
-     * @return 是否成功移除暂停标志
-     */
-    fun resumeUpload(transferId: Long): Boolean {
-        return activeUploadTasks.remove(transferId) != null
-    }
-    
-    /**
-     * 检查上传任务是否被暂停
-     * @param transferId 传输任务ID
-     * @return 是否被暂停
-     */
-    fun isUploadPaused(transferId: Long): Boolean {
-        return activeUploadTasks[transferId] == true
-    }
-    
-    /**
-     * 取消上传任务
-     * @param transferId 传输任务ID
-     * @return 是否成功设置取消标志
-     */
-    fun cancelUpload(transferId: Long): Boolean {
-        if (activeUploadTasks.containsKey(transferId)) {
-            activeUploadTasks[transferId] = true
-            Log.d(TAG, "设置任务取消标志: $transferId")
-            return true
-        }
-        return false
-    }
-    
-    /**
-     * 清理上传任务状态
-     * @param transferId 传输任务ID
-     */
-    fun cleanupUploadTask(transferId: Long) {
-        activeUploadTasks.remove(transferId)
-    }
     
     /**
      * 初始化七牛云上传管理器
@@ -159,7 +100,6 @@ class KodoUtils {
      * @param uri 文件Uri
      * @param token 上传Token，必须提供
      * @param key 指定的文件名，如果为null则由七牛云自动生成。注意：要支持断点续传必须提供一个固定的key
-     * @param transferId 传输任务ID
      * @param onProgress 上传进度回调
      * @param onComplete 上传完成回调
      * @param onCancelled 取消检查回调，返回true表示需要取消上传
@@ -169,7 +109,6 @@ class KodoUtils {
         uri: Uri,
         token: String,
         key: String? = null,
-        transferId: Long? = null,  // 添加transferId参数
         onProgress: (Double) -> Unit,
         onComplete: (Boolean, String) -> Unit,
         onCancelled: () -> Boolean = { false } // 默认不取消
@@ -201,10 +140,10 @@ class KodoUtils {
                 }
             },
             {
-                // 检查是否取消上传
-                val shouldCancel = onCancelled() || (transferId != null && isUploadPaused(transferId))
+                // 是否取消上传，通过回调检查
+                val shouldCancel = onCancelled()
                 if (shouldCancel) {
-                    Log.d(TAG, "上传操作被取消或暂停，将保存断点续传记录")
+                    Log.d(TAG, "上传操作被取消，将保存断点续传记录")
                     // 为了确保断点记录被保存，这里做一些操作
                     try {
                         val recorderPath = "${Utils.sdkDirectory()}/recorder"
@@ -231,6 +170,11 @@ class KodoUtils {
                         
                         // 强制等待一些时间，确保断点记录文件被正确保存
                         Thread.sleep(500)
+                        
+                        // 额外检查，如果仍然需要取消，输出日志确认
+                        if (onCancelled()) {
+                            Log.d(TAG, "确认取消上传操作")
+                        }
                     } catch (e: Exception) {
                         Log.e(TAG, "检查断点记录文件时出错", e)
                     }
