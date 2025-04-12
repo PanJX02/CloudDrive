@@ -43,9 +43,9 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -60,6 +60,8 @@ import com.panjx.clouddrive.data.database.TransferEntity
 import com.panjx.clouddrive.data.database.TransferType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.log10
+import kotlin.math.pow
 
 @Composable
 fun TransfersRoute() {
@@ -71,7 +73,7 @@ fun TransfersRoute() {
 fun TransfersScreen(
     viewModel: TransfersViewModel = hiltViewModel()
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("上传", "下载")
     
     var uploadInProgressExpanded by remember { mutableStateOf(true) }
@@ -80,12 +82,10 @@ fun TransfersScreen(
     var downloadCompletedExpanded by remember { mutableStateOf(true) }
     
     // 跟踪上一次的选项卡状态
-    var prevSelectedTab by remember { mutableStateOf(selectedTab) }
+    var prevSelectedTab by remember { mutableIntStateOf(selectedTab) }
     // 跟踪是否是手动展开/收起
     var isManualToggle by remember { mutableStateOf(false) }
-    
-    val uploadTasks by viewModel.uploadTasks.collectAsState()
-    val downloadTasks by viewModel.downloadTasks.collectAsState()
+
     
     val inProgressUploadTasks by viewModel.inProgressUploadTasks.collectAsState()
     val completedUploadTasks by viewModel.completedUploadTasks.collectAsState()
@@ -98,13 +98,7 @@ fun TransfersScreen(
     
     // 获取当前上下文
     val context = LocalContext.current
-    
-    // 首次加载时添加测试数据
-    LaunchedEffect(Unit) {
-        if (uploadTasks.isEmpty() && downloadTasks.isEmpty()) {
-            //viewModel.addSampleData()
-        }
-    }
+
 
     Scaffold(
         topBar = {
@@ -396,8 +390,8 @@ fun TransferTaskItem(
 private fun formatFileSize(size: Long): String {
     if (size <= 0) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
-    val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.0)).toInt()
-    return String.format("%.1f %s", size / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
+    val digitGroups = (log10(size.toDouble()) / log10(1024.0)).toInt()
+    return String.format("%.1f %s", size / 1024.0.pow(digitGroups.toDouble()), units[digitGroups])
 }
 
 // 格式化时间戳为可读形式
