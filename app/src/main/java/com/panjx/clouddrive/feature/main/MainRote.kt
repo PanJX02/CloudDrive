@@ -21,10 +21,14 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +36,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -41,8 +46,12 @@ import com.panjx.clouddrive.data.UserPreferences
 import com.panjx.clouddrive.feature.about.AboutRoute
 import com.panjx.clouddrive.feature.announcements.AnnouncementsRoute
 import com.panjx.clouddrive.feature.favorites.FavoritesRoute
+import com.panjx.clouddrive.feature.file.FileOperationType
+import com.panjx.clouddrive.feature.file.folderSelectionScreen
+import com.panjx.clouddrive.feature.file.navigateToFolderSelection
 import com.panjx.clouddrive.feature.fileRoute.FileActions
 import com.panjx.clouddrive.feature.fileRoute.FileRoute
+import com.panjx.clouddrive.feature.fileRoute.FileViewModel
 import com.panjx.clouddrive.feature.fileRoute.component.FileActionBar
 import com.panjx.clouddrive.feature.meRoute.MeRoute
 import com.panjx.clouddrive.feature.profile.ProfileRoute
@@ -50,6 +59,7 @@ import com.panjx.clouddrive.feature.recycleBin.RecycleBinRoute
 import com.panjx.clouddrive.feature.settings.SettingsRoute
 import com.panjx.clouddrive.feature.shared.SharedRoute
 import com.panjx.clouddrive.feature.transfersRoute.TransfersRoute
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainRote(
@@ -96,8 +106,20 @@ fun MainScreen(
         if (actionBarDp > bottomBarDp) actionBarDp - bottomBarDp else 0.dp
     }
     
+    // 文件操作状态 - 用于显示操作结果
+    val snackbarHostState = remember { SnackbarHostState() }
+    // 协程作用域
+    val scope = rememberCoroutineScope()
+    
+    // 文件视图模型
+    val fileViewModel = viewModel<FileViewModel>()
+    
+    // 记录要复制或移动的文件ID列表
+    var selectedFileIds by remember { mutableStateOf<List<Long>>(emptyList()) }
+    
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
                 // 始终显示标准底部栏（如果shouldShowBottomBar为true）
                 if (shouldShowBottomBar) {
@@ -127,7 +149,29 @@ fun MainScreen(
                     composable(Screen.File.route) {
                         FileRoute(
                             onActionsReady = { actions ->
-                                fileActions = actions
+                                // 更新文件操作
+                                fileActions = actions.copy(
+                                    onCopyClick = {
+                                        // 保存选中的文件ID列表，从FileActions中获取
+                                        selectedFileIds = actions.selectedFileIds
+                                        // 导航到文件夹选择页面，排除当前目录
+                                        val currentDirId = fileViewModel.currentDirId.value
+                                        navController.navigateToFolderSelection(
+                                            excludeFolderIds = currentDirId.toString(),
+                                            operationType = FileOperationType.COPY
+                                        )
+                                    },
+                                    onMoveClick = {
+                                        // 保存选中的文件ID列表，从FileActions中获取
+                                        selectedFileIds = actions.selectedFileIds
+                                        // 导航到文件夹选择页面，排除当前目录
+                                        val currentDirId = fileViewModel.currentDirId.value
+                                        navController.navigateToFolderSelection(
+                                            excludeFolderIds = currentDirId.toString(),
+                                            operationType = FileOperationType.MOVE
+                                        )
+                                    }
+                                )
                             },
                             onDispose = { 
                                 fileActions = FileActions()
@@ -212,6 +256,43 @@ fun MainScreen(
                             }
                         )
                     }
+                    // 文件夹选择页面路由 - 用于复制或移动文件
+                    folderSelectionScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onFolderSelected = { targetFolderId, operationType ->
+                            // 根据操作类型执行不同的操作
+                            when (operationType) {
+                                FileOperationType.COPY -> {
+                                    // 复制文件到选择的目标文件夹
+                                    fileViewModel.copyFiles(selectedFileIds, targetFolderId) { success, message ->
+                                        // 显示操作结果
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                message = message,
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        }
+                                        // 返回文件页面
+                                        navController.popBackStack()
+                                    }
+                                }
+                                FileOperationType.MOVE -> {
+                                    // 移动文件到选择的目标文件夹
+                                    fileViewModel.moveFiles(selectedFileIds, targetFolderId) { success, message ->
+                                        // 显示操作结果
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                message = message,
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        }
+                                        // 返回文件页面
+                                        navController.popBackStack()
+                                    }
+                                }
+                            }
+                        }
+                    )
                 }
             }
         }

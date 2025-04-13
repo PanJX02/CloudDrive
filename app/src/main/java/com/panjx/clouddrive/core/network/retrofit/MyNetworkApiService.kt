@@ -69,4 +69,25 @@ interface MyNetworkApiService {
     suspend fun uploadComplete(
         @Body file: File
     ): NetworkResponse<Unit>
+    
+    // 复制文件
+    @POST("files/copy")
+    suspend fun copyFiles(
+        @Query("fileIds") fileIds: List<Long>,
+        @Query("targetFolderId") targetFolderId: Long
+    ): NetworkResponse<Unit>
+    
+    // 移动文件
+    @POST("files/move")
+    suspend fun moveFiles(
+        @Query("fileIds") fileIds: List<Long>,
+        @Query("targetFolderId") targetFolderId: Long
+    ): NetworkResponse<Unit>
+    
+    // 创建文件夹
+    @POST("folders/create")
+    suspend fun createFolder(
+        @Query("name") name: String,
+        @Query("parentId") parentId: Long
+    ): NetworkResponse<Unit>
 }

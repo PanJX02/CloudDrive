@@ -253,6 +253,24 @@ class TransfersViewModel @Inject constructor(
                 Log.d("TransfersViewModel", "- 上传令牌: ${response.data?.uploadToken}")
                 Log.d("TransfersViewModel", "- 存储ID: ${response.data?.storageId}")
 
+                // 检查文件是否已经存在(秒传)
+                if (response.data?.fileExists == true) {
+                    Log.d("TransfersViewModel", "文件已存在，使用秒传功能直接完成上传")
+                    // 更新任务为已完成状态
+                    val updatedTask = task.copy(
+                        domain = null,
+                        uploadToken = null,
+                        storageId = response.data?.storageId,
+                        status = TransferStatus.COMPLETED, // 直接更新状态为已完成
+                        progress = 100
+                    )
+                    // 保存更新
+                    Log.d("TransfersViewModel", "正在更新数据库中的传输任务...")
+                    transferRepository.updateTransfer(updatedTask)
+                    Log.d("TransfersViewModel", "数据库更新成功，状态已更新为: COMPLETED (秒传)")
+                    return
+                }
+
                 // 将domain列表转换为字符串存储
                 val domainString = response.data?.domain?.joinToString(",")
 
@@ -392,6 +410,23 @@ class TransfersViewModel @Inject constructor(
                         if (response.code == 1) {
                             // 请求成功
                             Log.d("TransfersViewModel", "上传令牌请求成功")
+                            
+                            // 检查文件是否已经存在(秒传)
+                            if (response.data?.fileExists == true) {
+                                Log.d("TransfersViewModel", "文件已存在，使用秒传功能直接完成上传")
+                                // 更新任务为已完成状态
+                                val completedTask = tokenTask.copy(
+                                    domain = null,
+                                    uploadToken = null,
+                                    storageId = response.data?.storageId,
+                                    status = TransferStatus.COMPLETED, // 直接更新状态为已完成
+                                    progress = 100
+                                )
+                                // 保存更新
+                                transferRepository.updateTransfer(completedTask)
+                                Log.d("TransfersViewModel", "数据库更新成功，状态已更新为: COMPLETED (秒传)")
+                                return@launch
+                            }
 
                             // 将domain列表转换为字符串存储
                             val domainString = response.data?.domain?.joinToString(",")

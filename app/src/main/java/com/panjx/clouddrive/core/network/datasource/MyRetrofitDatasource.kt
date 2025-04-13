@@ -134,4 +134,22 @@ class MyRetrofitDatasource @Inject constructor(
         Log.d("MyRetrofitDatasource", "上传完成: file=$file")
         return getService().uploadComplete(file)
     }
+    
+    // 复制文件
+    suspend fun copyFiles(fileIds: List<Long>, targetFolderId: Long): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "复制文件: fileIds=$fileIds, targetFolderId=$targetFolderId")
+        return getService().copyFiles(fileIds, targetFolderId)
+    }
+    
+    // 移动文件
+    suspend fun moveFiles(fileIds: List<Long>, targetFolderId: Long): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "移动文件: fileIds=$fileIds, targetFolderId=$targetFolderId")
+        return getService().moveFiles(fileIds, targetFolderId)
+    }
+    
+    // 创建文件夹
+    suspend fun createFolder(name: String, parentId: Long): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "创建文件夹: name=$name, parentId=$parentId")
+        return getService().createFolder(name, parentId)
+    }
 }
