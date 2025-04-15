@@ -1,13 +1,23 @@
 package com.panjx.clouddrive
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
 import com.panjx.clouddrive.core.config.ServerManager
@@ -46,6 +56,38 @@ class MainActivity : ComponentActivity(), ServerManager.Companion.ServerConnecti
         private const val FIXED_CHECK_INTERVAL_MS =  30 * 1000L
         // 默认刷新阈值（24小时，单位毫秒）
         private const val DEFAULT_REFRESH_THRESHOLD_MS =24 * 60 * 60 * 1000L
+        // 存储权限请求码
+        private const val STORAGE_PERMISSION_CODE = 1001
+        // 所有文件访问权限请求码
+        private const val MANAGE_STORAGE_PERMISSION_CODE = 1002
+    }
+    
+    // 注册权限请求回调
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Log.d(TAG, "存储权限已获取")
+            Toast.makeText(this, "存储权限已获取，可以下载到公共目录", Toast.LENGTH_SHORT).show()
+        } else {
+            Log.d(TAG, "存储权限被拒绝")
+            Toast.makeText(this, "未获得存储权限，将使用应用私有目录", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    // 注册所有文件管理权限回调
+    private val requestManageExternalStorageLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (Environment.isExternalStorageManager()) {
+                Log.d(TAG, "已获取所有文件访问权限")
+                Toast.makeText(this, "已获取所有文件访问权限", Toast.LENGTH_SHORT).show()
+            } else {
+                Log.d(TAG, "未获取所有文件访问权限")
+                Toast.makeText(this, "未获取所有文件访问权限，将使用应用私有目录", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +112,9 @@ class MainActivity : ComponentActivity(), ServerManager.Companion.ServerConnecti
         // 检查并初始化token刷新
         initTokenRefresh()
         
+        // 请求存储权限
+        requestStoragePermissions()
+        
         // 设置沉浸式状态栏
         enableEdgeToEdge()
 
@@ -92,6 +137,42 @@ class MainActivity : ComponentActivity(), ServerManager.Companion.ServerConnecti
                         onDismiss = { showServerSelectionDialog = false }
                     )
                 }
+            }
+        }
+    }
+    
+    /**
+     * 请求存储权限
+     */
+    private fun requestStoragePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11及以上，请求所有文件访问权限
+            if (!Environment.isExternalStorageManager()) {
+                try {
+                    Log.d(TAG, "请求Android 11+所有文件访问权限")
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    intent.data = Uri.parse("package:$packageName")
+                    requestManageExternalStorageLauncher.launch(intent)
+                } catch (e: Exception) {
+                    Log.e(TAG, "请求所有文件访问权限失败", e)
+                    // 尝试使用旧版权限方式
+                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                    requestManageExternalStorageLauncher.launch(intent)
+                }
+            } else {
+                Log.d(TAG, "已有所有文件访问权限")
+            }
+        } else {
+            // Android 10及以下，请求传统存储权限
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                Log.d(TAG, "请求传统存储权限")
+                requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            } else {
+                Log.d(TAG, "已有传统存储权限")
             }
         }
     }

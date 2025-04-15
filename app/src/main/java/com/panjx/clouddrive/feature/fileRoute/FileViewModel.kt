@@ -54,6 +54,37 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
         loadDirectoryContent(_currentDirId.value)
     }
 
+    /**
+     * 根据ID列表获取选中的文件对象列表
+     */
+    fun getSelectedFiles(fileIds: List<Long>): List<File> {
+        Log.d("FileViewModel", "getSelectedFiles: 开始查找, 传入ID数量: ${fileIds.size}")
+        Log.d("FileViewModel", "传入的ID列表: $fileIds")
+        
+        val currentState = _uiState.value
+        if (currentState is FileUiState.Success) {
+            Log.d("FileViewModel", "当前状态是Success, 文件列表大小: ${currentState.files.size}")
+            
+            // 打印所有文件的ID进行对比
+            currentState.files.forEachIndexed { index, file ->
+                Log.d("FileViewModel", "文件[$index]: id=${file.id}, 名称=${file.fileName}")
+            }
+            
+            // 进行筛选
+            val result = currentState.files.filter { file -> 
+                val match = fileIds.contains(file.id)
+                Log.d("FileViewModel", "检查文件 ${file.fileName}(id=${file.id}): 是否匹配=${match}")
+                match
+            }
+            
+            Log.d("FileViewModel", "筛选结果: 找到${result.size}个匹配文件")
+            return result
+        }
+        
+        Log.d("FileViewModel", "当前状态不是Success, 无法获取文件列表")
+        return emptyList()
+    }
+
     fun loadData() {
         // 设置刷新状态为true
         _isRefreshing.value = true

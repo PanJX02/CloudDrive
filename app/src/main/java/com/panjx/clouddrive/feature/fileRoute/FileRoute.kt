@@ -53,6 +53,7 @@ import com.panjx.clouddrive.core.design.component.FileTopBar
 import com.panjx.clouddrive.core.design.theme.MyAppTheme
 import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.feature.file.component.FileExplorer
+import com.panjx.clouddrive.feature.transfersRoute.DownloadTransfersViewModel
 import com.panjx.clouddrive.feature.transfersRoute.TransfersViewModel
 import com.panjx.clouddrive.util.FileUtils
 import kotlinx.coroutines.launch
@@ -83,6 +84,8 @@ fun FileRoute(
     val uiState by viewModel.uiState.collectAsState()
     val currentPath by viewModel.currentPath.collectAsState()
     val selectedFiles = remember { mutableStateListOf<Long>() }
+    val downloadViewModel: DownloadTransfersViewModel = hiltViewModel()
+    val context = LocalContext.current
 
     // 创建函数来清空选中文件
     val clearSelection = {
@@ -95,7 +98,26 @@ fun FileRoute(
     val fileActions = remember(selectedFiles.size) { // Re-create actions when selection changes
         val hasSelection = selectedFiles.isNotEmpty()
         FileActions(
-            onDownloadClick = { Log.d("FileRoute", "Download clicked: ${selectedFiles.toList()}") /* TODO: viewModel.download(selectedFiles) */ },
+            onDownloadClick = { 
+                Log.d("FileRoute", "================== 下载流程开始 ==================")
+                Log.d("FileRoute", "用户点击下载按钮，选中文件数量: ${selectedFiles.size}")
+                Log.d("FileRoute", "选中的文件ID: ${selectedFiles.toList()}")
+                
+                // 获取选中的文件对象
+                val filesToDownload = viewModel.getSelectedFiles(selectedFiles.toList())
+                Log.d("FileRoute", "获取到的文件对象数量: ${filesToDownload.size}")
+                filesToDownload.forEachIndexed { index, file ->
+                    Log.d("FileRoute", "文件[$index]: id=${file.id}, 名称=${file.fileName}, 类型=${file.folderType}")
+                }
+                
+                // 调用下载ViewModel进行下载
+                Log.d("FileRoute", "调用DownloadTransfersViewModel.addDownloadTasks开始下载...")
+                downloadViewModel.addDownloadTasks(filesToDownload, context)
+                
+                // 清空选中
+                clearSelection()
+                Log.d("FileRoute", "已清空选中状态")
+            },
             onMoveClick = { Log.d("FileRoute", "Move clicked: ${selectedFiles.toList()}") /* TODO: viewModel.move(selectedFiles) */ },
             onCopyClick = { Log.d("FileRoute", "Copy clicked: ${selectedFiles.toList()}") /* TODO: viewModel.copy(selectedFiles) */ },
             onFavoriteClick = { Log.d("FileRoute", "Favorite clicked: ${selectedFiles.toList()}") /* TODO: viewModel.favorite(selectedFiles) */ },

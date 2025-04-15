@@ -103,8 +103,26 @@ class TransferRepository @Inject constructor(
     }
     
     suspend fun updateTransferStatus(id: Long, status: TransferStatus, progress: Int) {
-        // 这里需要先查询，再更新，实际实现中可以优化为单个语句
-        // 此处简化处理
+        Log.d("TransferRepository", "更新传输任务状态，ID: $id, 状态: $status, 进度: $progress")
+        try {
+            // 获取当前的传输任务
+            val transfers = transferDao.getTransferListByIds(listOf(id))
+            if (transfers.isNotEmpty()) {
+                val transfer = transfers[0]
+                // 创建更新的传输任务对象
+                val updatedTransfer = transfer.copy(
+                    status = status,
+                    progress = progress,
+                    updatedAt = System.currentTimeMillis()
+                )
+                transferDao.updateTransfer(updatedTransfer)
+                Log.d("TransferRepository", "传输任务状态已更新，ID: $id")
+            } else {
+                Log.e("TransferRepository", "找不到ID为 $id 的传输任务，无法更新状态")
+            }
+        } catch (e: Exception) {
+            Log.e("TransferRepository", "更新传输任务状态出错: ${e.message}")
+        }
     }
     
     suspend fun deleteTransfer(transfer: TransferEntity) {

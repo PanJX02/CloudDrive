@@ -1,8 +1,10 @@
 package com.panjx.clouddrive.core.network.retrofit
 
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.request.DownloadRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
 import com.panjx.clouddrive.core.modle.request.User
+import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
@@ -69,6 +71,12 @@ interface MyNetworkApiService {
     suspend fun uploadComplete(
         @Body file: File
     ): NetworkResponse<Unit>
+    
+    // 获取文件下载链接
+    @POST("files/download")
+    suspend fun getDownloadUrl(
+        @Body request: DownloadRequest
+    ): NetworkResponse<DownloadResponse>
     
     // 复制文件
     @POST("files/copy")

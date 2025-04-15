@@ -4,8 +4,10 @@ import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.panjx.clouddrive.core.config.Config
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.request.DownloadRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
 import com.panjx.clouddrive.core.modle.request.User
+import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
@@ -133,6 +135,52 @@ class MyRetrofitDatasource @Inject constructor(
     suspend fun uploadComplete(file: File): NetworkResponse<Unit> {
         Log.d("MyRetrofitDatasource", "上传完成: file=$file")
         return getService().uploadComplete(file)
+    }
+    
+    // 获取文件下载链接
+    suspend fun getDownloadUrl(fileId: Long): NetworkResponse<DownloadResponse> {
+        Log.d("MyRetrofitDatasource", "========== 开始获取下载链接API调用 ==========")
+        Log.d("MyRetrofitDatasource", "文件ID: $fileId")
+        
+        try {
+            val request = DownloadRequest(fileId)
+            Log.d("MyRetrofitDatasource", "发送下载请求: ${request.id}")
+            
+            // 获取当前服务器地址
+            val endpoint = Config.getEndpoint(userPreferences)
+            Log.d("MyRetrofitDatasource", "当前服务器地址: $endpoint")
+            
+            val response = getService().getDownloadUrl(request)
+            
+            Log.d("MyRetrofitDatasource", "API调用完成，响应码: ${response.code}")
+            Log.d("MyRetrofitDatasource", "响应消息: ${response.message}")
+            
+            if (response.code == 1) {
+                Log.d("MyRetrofitDatasource", "获取下载链接成功:")
+                Log.d("MyRetrofitDatasource", "- 是否文件夹: ${response.data?.folderType}")
+                Log.d("MyRetrofitDatasource", "- 总大小: ${response.data?.totalSize}")
+                Log.d("MyRetrofitDatasource", "- 文件数量: ${response.data?.downloadFiles?.size}")
+                
+                // 记录每个文件的信息
+                response.data?.downloadFiles?.forEachIndexed { index, fileInfo ->
+                    Log.d("MyRetrofitDatasource", "文件[$index]: ${fileInfo.fileName}, URL长度: ${fileInfo.url?.length ?: 0}")
+                }
+            } else {
+                Log.e("MyRetrofitDatasource", "获取下载链接失败:")
+                Log.e("MyRetrofitDatasource", "- 错误码: ${response.code}")
+                Log.e("MyRetrofitDatasource", "- 错误消息: ${response.message}")
+            }
+            
+            Log.d("MyRetrofitDatasource", "========== 获取下载链接API调用结束 ==========")
+            return response
+        } catch (e: Exception) {
+            Log.e("MyRetrofitDatasource", "获取下载链接异常:", e)
+            Log.e("MyRetrofitDatasource", "- 异常类型: ${e.javaClass.simpleName}")
+            Log.e("MyRetrofitDatasource", "- 异常消息: ${e.message}")
+            Log.e("MyRetrofitDatasource", "- 异常堆栈: ", e)
+            Log.d("MyRetrofitDatasource", "========== 获取下载链接API调用结束(异常) ==========")
+            throw e
+        }
     }
     
     // 复制文件
