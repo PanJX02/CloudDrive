@@ -82,7 +82,8 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
         operationViewModel.copyFiles(fileIds, targetFolderId) { success, message ->
             // 如果操作成功且目标文件夹是当前文件夹，刷新列表
             if (success && targetFolderId == currentDirId.value) {
-                listViewModel.loadDirectoryContent(currentDirId.value)
+                // 使用下拉刷新而不是直接加载
+                listViewModel.refreshData(currentDirId.value)
             }
             onComplete(success, message)
         }
@@ -95,7 +96,8 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
         operationViewModel.moveFiles(fileIds, targetFolderId) { success, message ->
             // 移动成功后刷新当前列表，因为有文件被移走了
             if (success) {
-                listViewModel.loadDirectoryContent(currentDirId.value)
+                // 使用下拉刷新而不是直接加载
+                listViewModel.refreshData(currentDirId.value)
             }
             onComplete(success, message)
         }
@@ -108,7 +110,8 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
         operationViewModel.createFolder(folderName, currentDirId.value) { success, message ->
             // 创建成功后刷新当前列表
             if (success) {
-                listViewModel.loadDirectoryContent(currentDirId.value)
+                // 使用下拉刷新而不是直接加载
+                listViewModel.refreshData(currentDirId.value)
             }
             onComplete(success, message)
         }
@@ -121,7 +124,50 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
         operationViewModel.deleteFiles(fileIds) { success, message ->
             // 删除成功后刷新当前列表
             if (success) {
-                listViewModel.loadDirectoryContent(currentDirId.value)
+                // 使用下拉刷新而不是直接加载
+                listViewModel.refreshData(currentDirId.value)
+            }
+            onComplete(success, message)
+        }
+    }
+    
+    /**
+     * 重命名文件
+     */
+    fun renameFile(fileId: Long, newName: String, onComplete: (Boolean, String) -> Unit) {
+        operationViewModel.renameFile(fileId, newName) { success, message ->
+            // 重命名成功后刷新当前列表
+            if (success) {
+                // 使用下拉刷新而不是直接加载
+                listViewModel.refreshData(currentDirId.value)
+            }
+            onComplete(success, message)
+        }
+    }
+    
+    /**
+     * 添加文件到收藏
+     */
+    fun addToFavorites(fileIds: List<Long>, onComplete: (Boolean, String) -> Unit) {
+        operationViewModel.addToFavorites(fileIds) { success, message ->
+            // 收藏成功后刷新当前列表
+            if (success) {
+                // 使用下拉刷新而不是直接加载
+                listViewModel.refreshData(currentDirId.value)
+            }
+            onComplete(success, message)
+        }
+    }
+    
+    /**
+     * 从收藏中移除文件
+     */
+    fun removeFromFavorites(fileIds: List<Long>, onComplete: (Boolean, String) -> Unit) {
+        operationViewModel.removeFromFavorites(fileIds) { success, message ->
+            // 取消收藏成功后刷新当前列表
+            if (success) {
+                // 使用下拉刷新而不是直接加载
+                listViewModel.refreshData(currentDirId.value)
             }
             onComplete(success, message)
         }

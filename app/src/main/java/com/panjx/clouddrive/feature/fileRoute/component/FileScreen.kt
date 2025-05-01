@@ -46,7 +46,14 @@ fun FileScreen(
     clearSelection: () -> Unit,
     extraBottomSpace: Dp = 0.dp,
     toSearch: () -> Unit = {},
-    errorContent: @Composable (() -> Unit)? = null
+    errorContent: @Composable (() -> Unit)? = null,
+    // 重命名对话框参数
+    showRenameDialog: Boolean = false,
+    onShowRenameDialogChange: (Boolean) -> Unit = {},
+    fileToRename: Pair<Long, String>? = null,
+    onFileToRenameChange: (Pair<Long, String>?) -> Unit = {},
+    newFileName: String = "",
+    onNewFileNameChange: (String) -> Unit = {}
 ) {
     // 确定文件列表和加载状态
     val (files, isListLoading) = when (uiState) {
@@ -104,6 +111,36 @@ fun FileScreen(
                 }
                 showNewFolderDialog = false
                 newFolderName = ""
+            }
+        )
+    }
+    
+    // 重命名对话框
+    if (showRenameDialog && fileToRename != null) {
+        RenameDialog(
+            fileName = newFileName,
+            onFileNameChange = onNewFileNameChange,
+            onDismiss = { 
+                onShowRenameDialogChange(false)
+                onFileToRenameChange(null)
+                onNewFileNameChange("")
+            },
+            onConfirm = {
+                fileToRename.let { (fileId, _) ->
+                    if (newFileName.isNotBlank()) {
+                        viewModel.renameFile(fileId, newFileName) { success, message ->
+                            if (success) {
+                                Log.d("FileScreen", "文件重命名成功: $message")
+                                clearSelection()
+                            } else {
+                                Log.e("FileScreen", "文件重命名失败: $message")
+                            }
+                        }
+                    }
+                }
+                onShowRenameDialogChange(false)
+                onFileToRenameChange(null)
+                onNewFileNameChange("")
             }
         )
     }

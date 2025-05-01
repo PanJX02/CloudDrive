@@ -6,6 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
@@ -32,6 +33,11 @@ fun FileRoute(
     val selectedFiles = remember { mutableStateListOf<Long>() }
     val downloadViewModel: DownloadTransfersViewModel = hiltViewModel()
     val context = LocalContext.current
+    
+    // 重命名对话框状态管理
+    var showRenameDialog = remember { mutableStateOf(false) }
+    var fileToRename = remember { mutableStateOf<Pair<Long, String>?>(null) }
+    var newFileName = remember { mutableStateOf("") }
 
     // 创建函数来清空选中文件
     val clearSelection = {
@@ -60,7 +66,20 @@ fun FileRoute(
             onMoveClick = { fileOperations.moveFiles(selectedFileIds) },
             onCopyClick = { fileOperations.copyFiles(selectedFileIds) },
             onFavoriteClick = { fileOperations.toggleFavorite(selectedFileIds) },
-            onRenameClick = { fileOperations.renameFile(selectedFileIds) },
+            onRenameClick = { 
+                // 处理重命名操作
+                if (selectedFileIds.size == 1) {
+                    // 获取文件信息
+                    val fileInfo = fileOperations.renameFile(selectedFileIds)
+                    if (fileInfo != null) {
+                        val (fileId, currentName) = fileInfo
+                        // 设置重命名对话框状态
+                        fileToRename.value = Pair(fileId, currentName)
+                        newFileName.value = currentName
+                        showRenameDialog.value = true
+                    }
+                }
+            },
             onDeleteClick = { fileOperations.deleteFiles(selectedFileIds) },
             onShareClick = { fileOperations.shareFiles(selectedFileIds) },
             onDetailsClick = { fileOperations.showFileDetails(selectedFileIds) },
@@ -105,6 +124,13 @@ fun FileRoute(
         },
         onNavigateToDirectory = handleNavigateToDirectory, // 传递导航处理函数
         clearSelection = clearSelection, // 传递清空选择函数
-        extraBottomSpace = extraBottomSpace // 传递额外底部空间
+        extraBottomSpace = extraBottomSpace, // 传递额外底部空间
+        // 传递重命名对话框状态
+        showRenameDialog = showRenameDialog.value,
+        onShowRenameDialogChange = { showRenameDialog.value = it },
+        fileToRename = fileToRename.value,
+        onFileToRenameChange = { fileToRename.value = it },
+        newFileName = newFileName.value,
+        onNewFileNameChange = { newFileName.value = it }
     )
 }

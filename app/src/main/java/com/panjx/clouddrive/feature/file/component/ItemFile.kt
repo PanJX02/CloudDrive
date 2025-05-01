@@ -5,12 +5,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -76,6 +78,17 @@ fun ItemFile(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 显示收藏星号
+                if (data.favoriteFlag == 1) {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = "已收藏",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.size(4.dp))
+                }
+                
                 Text(
                     text = data.lastUpdateTime?.let { DateTimeUtils.formatTimestamp(it) } ?: "未知时间",
                     style = MaterialTheme.typography.bodySmall,

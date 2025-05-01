@@ -1,11 +1,13 @@
 package com.panjx.clouddrive.core.network.retrofit
 
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.FileDetail
 import com.panjx.clouddrive.core.modle.request.CopyFilesRequest
 import com.panjx.clouddrive.core.modle.request.CreateFolderRequest
 import com.panjx.clouddrive.core.modle.request.DownloadRequest
 import com.panjx.clouddrive.core.modle.request.MoveFilesRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
+import com.panjx.clouddrive.core.modle.request.RenameFileRequest
 import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
@@ -107,8 +109,26 @@ interface MyNetworkApiService {
     ): NetworkResponse<Unit>
 
     // 文件详情
-    @GET("files/info")
+    @GET("files/detail")
     suspend fun getFileDetails(
-        @Query("id") id: String
-    ): NetworkResponse<File>
+        @Body request: UserFileIdsRequest
+    ): NetworkResponse<FileDetail>
+
+    // 重命名文件
+    @POST("files/rename")
+    suspend fun renameFile(
+        @Body request: RenameFileRequest
+    ): NetworkResponse<Unit>
+
+    // 收藏文件
+    @POST("files/favorite")
+    suspend fun favorites(
+        @Body request: UserFileIdsRequest
+    ): NetworkResponse<Unit>
+
+    // 取消收藏文件
+    @POST("files/unfavorite")
+    suspend fun unFavorites(
+        @Body request: UserFileIdsRequest
+    ): NetworkResponse<Unit>
 }

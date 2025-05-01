@@ -4,11 +4,13 @@ import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.panjx.clouddrive.core.config.Config
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.FileDetail
 import com.panjx.clouddrive.core.modle.request.CopyFilesRequest
 import com.panjx.clouddrive.core.modle.request.CreateFolderRequest
 import com.panjx.clouddrive.core.modle.request.DownloadRequest
 import com.panjx.clouddrive.core.modle.request.MoveFilesRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
+import com.panjx.clouddrive.core.modle.request.RenameFileRequest
 import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
@@ -209,5 +211,29 @@ class MyRetrofitDatasource @Inject constructor(
     suspend fun deleteFiles(fileIds: List<Long>): NetworkResponse<Unit> {
         Log.d("MyRetrofitDatasource", "删除文件: fileIds=$fileIds")
         return getService().deleteFiles(UserFileIdsRequest(fileIds))
+    }
+
+    // 重命名文件
+    suspend fun renameFile(fileId: Long, newName: String): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "重命名文件: fileId=$fileId, newName=$newName")
+        return getService().renameFile(RenameFileRequest(fileId, newName))
+    }
+
+    // 收藏文件
+    suspend fun favorites(fileIds: List<Long>): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "收藏文件: fileId=$fileIds")
+        return getService().favorites(UserFileIdsRequest(fileIds))
+    }
+
+    // 取消收藏文件
+    suspend fun unfavorites(fileIds: List<Long>): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "取消收藏文件: fileId=$fileIds")
+        return getService().unFavorites(UserFileIdsRequest(fileIds))
+    }
+
+    // 获取文件详情
+    suspend fun getFileDetails(fileIds: List<Long>): NetworkResponse<FileDetail> {
+        Log.d("MyRetrofitDatasource", "获取文件详情: fileId=$fileIds")
+        return getService().getFileDetails(UserFileIdsRequest(fileIds))
     }
 }

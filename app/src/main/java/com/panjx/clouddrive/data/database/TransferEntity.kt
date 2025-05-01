@@ -26,6 +26,7 @@ data class TransferEntity(
     val filePid: Long? = null, // 文件父ID
     val folderType: Int = 0, // 默认为文件类型
     val deleteFlag: Int = 2, // 默认为正常
+    val favoriteFlag: Int = 0, // 默认为未收藏
     val fileMD5: String? = null, // 文件MD5
     val fileSHA1: String? = null, // 文件SHA1
     val fileSHA256: String? = null, // 文件SHA256

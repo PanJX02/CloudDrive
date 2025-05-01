@@ -544,6 +544,11 @@ fun FileInfoDialog(
                     text = "删除标记：${transfer.deleteFlag}",
                     style = MaterialTheme.typography.bodyMedium
                 )
+
+                Text(
+                    text = "收藏标记：${transfer.favoriteFlag}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 
                 Text(
                     text = "存储ID：${transfer.storageId ?: "未设置"}",
