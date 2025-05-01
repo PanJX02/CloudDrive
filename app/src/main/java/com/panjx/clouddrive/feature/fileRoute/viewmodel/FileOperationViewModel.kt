@@ -119,6 +119,36 @@ class FileOperationViewModel(application: Application) : AndroidViewModel(applic
         }
     }
     
+    // 删除文件
+    fun deleteFiles(fileIds: List<Long>, onComplete: (Boolean, String) -> Unit) {
+        if (fileIds.isEmpty()) {
+            onComplete(false, "未选择任何文件")
+            return
+        }
+        
+        _operationState.value = FileOperationState.Loading
+        
+        viewModelScope.launch {
+            try {
+                Log.d("FileOperationViewModel", "开始删除文件: ${fileIds.joinToString()}")
+                
+                // 调用API执行删除
+                val response = networkDataSource.deleteFiles(fileIds)
+                if (response.code == 1) {
+                    _operationState.value = FileOperationState.Success("删除成功")
+                    onComplete(true, "文件删除成功")
+                } else {
+                    _operationState.value = FileOperationState.Error(response.message ?: "删除失败")
+                    onComplete(false, response.message ?: "删除失败")
+                }
+            } catch (e: Exception) {
+                Log.e("FileOperationViewModel", "删除文件失败: ${e.message}")
+                _operationState.value = FileOperationState.Error(e.message ?: "未知错误")
+                onComplete(false, e.message ?: "未知错误")
+            }
+        }
+    }
+    
     // 重置操作状态为空闲
     fun resetOperationState() {
         _operationState.value = FileOperationState.Idle

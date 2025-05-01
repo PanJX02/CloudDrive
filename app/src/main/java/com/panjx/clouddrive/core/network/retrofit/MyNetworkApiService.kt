@@ -1,9 +1,13 @@
 package com.panjx.clouddrive.core.network.retrofit
 
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.request.CopyFilesRequest
+import com.panjx.clouddrive.core.modle.request.CreateFolderRequest
 import com.panjx.clouddrive.core.modle.request.DownloadRequest
+import com.panjx.clouddrive.core.modle.request.MoveFilesRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
 import com.panjx.clouddrive.core.modle.request.User
+import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
@@ -81,21 +85,30 @@ interface MyNetworkApiService {
     // 复制文件
     @POST("files/copy")
     suspend fun copyFiles(
-        @Body ids: List<Long>,
-        @Body targetFolderId: Long
+        @Body request: CopyFilesRequest
     ): NetworkResponse<Unit>
     
     // 移动文件
     @POST("files/move")
     suspend fun moveFiles(
-        @Body ids: List<Long>,
-        @Body targetFolderId: Long
+        @Body request: MoveFilesRequest
     ): NetworkResponse<Unit>
     
     // 创建文件夹
     @POST("folders/create")
     suspend fun createFolder(
-        @Body folderName: String,
-        @Body parentId: Long
+        @Body request: CreateFolderRequest
     ): NetworkResponse<Unit>
+
+    // 删除文件
+    @POST("files/delete")
+    suspend fun deleteFiles(
+        @Body request: UserFileIdsRequest
+    ): NetworkResponse<Unit>
+
+    // 文件详情
+    @GET("files/info")
+    suspend fun getFileDetails(
+        @Query("id") id: String
+    ): NetworkResponse<File>
 }

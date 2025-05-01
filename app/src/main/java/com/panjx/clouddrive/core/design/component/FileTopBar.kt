@@ -10,16 +10,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -84,7 +80,7 @@ fun FileTopBar(
                         }
                 )
             }
-        },
+        }/*,
         // 更多功能菜单
         actions = {
             // 使用 Box 容器，填充整个 actions 区域，并设置内容居中
@@ -108,17 +104,17 @@ fun FileTopBar(
             ) {
                 DropdownMenuItem(
                     text = { Text("新建文件夹") },
-                    onClick = { /* 处理新建文件夹 */ }
+                    onClick = { *//* 处理新建文件夹 *//* }
                 )
                 DropdownMenuItem(
                     text = { Text("排序") },
-                    onClick = { /* 处理排序 */ }
+                    onClick = { *//* 处理排序 *//* }
                 )
                 DropdownMenuItem(
                     text = { Text("设置") },
-                    onClick = { /* 跳转到设置页 */ }
+                    onClick = { *//* 跳转到设置页 *//* }
                 )
             }
-        }
+        }*/
     )
 }

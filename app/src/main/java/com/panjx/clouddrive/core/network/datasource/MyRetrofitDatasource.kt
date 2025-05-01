@@ -4,9 +4,13 @@ import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.panjx.clouddrive.core.config.Config
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.request.CopyFilesRequest
+import com.panjx.clouddrive.core.modle.request.CreateFolderRequest
 import com.panjx.clouddrive.core.modle.request.DownloadRequest
+import com.panjx.clouddrive.core.modle.request.MoveFilesRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
 import com.panjx.clouddrive.core.modle.request.User
+import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
@@ -186,18 +190,24 @@ class MyRetrofitDatasource @Inject constructor(
     // 复制文件
     suspend fun copyFiles(fileIds: List<Long>, targetFolderId: Long): NetworkResponse<Unit> {
         Log.d("MyRetrofitDatasource", "复制文件: fileIds=$fileIds, targetFolderId=$targetFolderId")
-        return getService().copyFiles(fileIds, targetFolderId)
+        return getService().copyFiles(CopyFilesRequest(fileIds, targetFolderId))
     }
     
     // 移动文件
     suspend fun moveFiles(fileIds: List<Long>, targetFolderId: Long): NetworkResponse<Unit> {
         Log.d("MyRetrofitDatasource", "移动文件: fileIds=$fileIds, targetFolderId=$targetFolderId")
-        return getService().moveFiles(fileIds, targetFolderId)
+        return getService().moveFiles(MoveFilesRequest(fileIds, targetFolderId))
     }
     
     // 创建文件夹
     suspend fun createFolder(name: String, parentId: Long): NetworkResponse<Unit> {
         Log.d("MyRetrofitDatasource", "创建文件夹: name=$name, parentId=$parentId")
-        return getService().createFolder(name, parentId)
+        return getService().createFolder(CreateFolderRequest(name, parentId))
+    }
+    
+    // 删除文件
+    suspend fun deleteFiles(fileIds: List<Long>): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "删除文件: fileIds=$fileIds")
+        return getService().deleteFiles(UserFileIdsRequest(fileIds))
     }
 }

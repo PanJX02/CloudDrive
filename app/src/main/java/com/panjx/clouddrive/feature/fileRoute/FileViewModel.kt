@@ -115,6 +115,19 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
     }
     
     /**
+     * 删除文件
+     */
+    fun deleteFiles(fileIds: List<Long>, onComplete: (Boolean, String) -> Unit) {
+        operationViewModel.deleteFiles(fileIds) { success, message ->
+            // 删除成功后刷新当前列表
+            if (success) {
+                listViewModel.loadDirectoryContent(currentDirId.value)
+            }
+            onComplete(success, message)
+        }
+    }
+    
+    /**
      * 重置操作状态
      */
     fun resetOperationState() {

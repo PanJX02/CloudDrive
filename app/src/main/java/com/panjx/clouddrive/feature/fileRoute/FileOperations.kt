@@ -79,7 +79,25 @@ class FileOperations(
      */
     fun deleteFiles(selectedFileIds: List<Long>) {
         Log.d(TAG, "删除操作: $selectedFileIds")
-        // TODO: 实现删除文件逻辑
+        
+        if (selectedFileIds.isEmpty()) {
+            Log.d(TAG, "无选中文件，取消删除操作")
+            return
+        }
+        
+        Log.d(TAG, "开始删除文件，数量: ${selectedFileIds.size}")
+        
+        // 调用ViewModel执行删除
+        viewModel.deleteFiles(selectedFileIds) { success, message ->
+            if (success) {
+                Log.d(TAG, "删除文件成功: $message")
+            } else {
+                Log.e(TAG, "删除文件失败: $message")
+                // 此处可以添加错误提示逻辑，例如显示Toast或Snackbar
+            }
+        }
+        
+        // 清空选中
         clearSelection()
     }
 
