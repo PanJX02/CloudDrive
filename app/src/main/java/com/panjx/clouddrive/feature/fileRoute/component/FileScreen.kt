@@ -53,7 +53,13 @@ fun FileScreen(
     fileToRename: Pair<Long, String>? = null,
     onFileToRenameChange: (Pair<Long, String>?) -> Unit = {},
     newFileName: String = "",
-    onNewFileNameChange: (String) -> Unit = {}
+    onNewFileNameChange: (String) -> Unit = {},
+    // 文件详情对话框参数
+    showFileDetailDialog: Boolean = false,
+    onShowFileDetailDialogChange: (Boolean) -> Unit = {},
+    fileDetail: com.panjx.clouddrive.core.modle.FileDetail? = null,
+    isLoadingFileDetail: Boolean = false,
+    fileDetailErrorMessage: String = ""
 ) {
     // 确定文件列表和加载状态
     val (files, isListLoading) = when (uiState) {
@@ -142,6 +148,16 @@ fun FileScreen(
                 onFileToRenameChange(null)
                 onNewFileNameChange("")
             }
+        )
+    }
+    
+    // 文件详情对话框
+    if (showFileDetailDialog) {
+        FileDetailDialog(
+            fileDetail = fileDetail,
+            isLoading = isLoadingFileDetail,
+            errorMessage = fileDetailErrorMessage,
+            onDismiss = { onShowFileDetailDialogChange(false) }
         )
     }
     

@@ -38,6 +38,12 @@ fun FileRoute(
     var showRenameDialog = remember { mutableStateOf(false) }
     var fileToRename = remember { mutableStateOf<Pair<Long, String>?>(null) }
     var newFileName = remember { mutableStateOf("") }
+    
+    // 文件详情对话框状态管理
+    var showFileDetailDialog = remember { mutableStateOf(false) }
+    var fileDetail = remember { mutableStateOf<com.panjx.clouddrive.core.modle.FileDetail?>(null) }
+    var isLoadingFileDetail = remember { mutableStateOf(false) }
+    var fileDetailErrorMessage = remember { mutableStateOf("") }
 
     // 创建函数来清空选中文件
     val clearSelection = {
@@ -82,7 +88,26 @@ fun FileRoute(
             },
             onDeleteClick = { fileOperations.deleteFiles(selectedFileIds) },
             onShareClick = { fileOperations.shareFiles(selectedFileIds) },
-            onDetailsClick = { fileOperations.showFileDetails(selectedFileIds) },
+            onDetailsClick = { 
+                // 处理查看详情操作
+                fileDetailErrorMessage.value = ""
+                fileDetail.value = null
+                isLoadingFileDetail.value = true
+                showFileDetailDialog.value = true
+                
+                // 调用fileOperations.showFileDetails并获取详情
+                fileOperations.showFileDetails(selectedFileIds)
+                
+                // 获取详情
+                viewModel.getFileDetails(selectedFileIds) { success, message, detail ->
+                    isLoadingFileDetail.value = false
+                    if (success && detail != null) {
+                        fileDetail.value = detail
+                    } else {
+                        fileDetailErrorMessage.value = message
+                    }
+                }
+            },
             hasSelection = hasSelection,
             selectedFileIds = selectedFileIds
         )
@@ -131,6 +156,12 @@ fun FileRoute(
         fileToRename = fileToRename.value,
         onFileToRenameChange = { fileToRename.value = it },
         newFileName = newFileName.value,
-        onNewFileNameChange = { newFileName.value = it }
+        onNewFileNameChange = { newFileName.value = it },
+        // 文件详情对话框参数
+        showFileDetailDialog = showFileDetailDialog.value,
+        onShowFileDetailDialogChange = { showFileDetailDialog.value = it },
+        fileDetail = fileDetail.value,
+        isLoadingFileDetail = isLoadingFileDetail.value,
+        fileDetailErrorMessage = fileDetailErrorMessage.value
     )
 }

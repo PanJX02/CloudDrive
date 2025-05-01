@@ -7,19 +7,19 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class FileDetail(
-    val id: Int,
-    val fileName: String,
-    val fileExtension: String?,
-    val fileCategory: Int?,
-    val fileSize: Long,
-    val folderType: Int,
-    val filePath: String?,
-    val createTime: Long,
-    val lastUpdateTime: Long,
-    val fileCount: Int,
-    val folderCount: Int,
-    val favoriteFlag: Int,
-    val fileMd5: String?,
-    val fileSha1: String?,
-    val fileSha256: String?
+    val id: Int? = null,
+    val fileName: String? = null,
+    val fileExtension: String? = null,
+    val fileCategory: String? = null,
+    val fileSize: Long? = null,
+    val folderType: Int? = null,
+    val filePath: String? = null,
+    val createTime: Long? = null,
+    val lastUpdateTime: Long? = null,
+    val fileCount: Int? = null,
+    val folderCount: Int? = null,
+    val favoriteFlag: Int? = null,
+    val fileMd5: String? = null,
+    val fileSha1: String? = null,
+    val fileSha256: String? = null
 )

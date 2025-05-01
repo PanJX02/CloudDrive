@@ -239,6 +239,48 @@ class FileOperationViewModel(application: Application) : AndroidViewModel(applic
         }
     }
     
+    // 获取文件详情
+    fun getFileDetails(fileIds: List<Long>, onComplete: (Boolean, String, com.panjx.clouddrive.core.modle.FileDetail?) -> Unit) {
+        if (fileIds.isEmpty()) {
+            onComplete(false, "未选择任何文件", null)
+            return
+        }
+        
+        _operationState.value = FileOperationState.Loading
+        
+        viewModelScope.launch {
+            try {
+                Log.d("FileOperationViewModel", "获取文件详情: ${fileIds.joinToString()}")
+                
+                // 调用API获取文件详情
+                val response = networkDataSource.getFileDetails(fileIds)
+                Log.d("FileOperationViewModel", "文件详情响应: code=${response.code}, message=${response.message}")
+                Log.d("FileOperationViewModel", "文件详情数据: ${response.data}")
+                
+                if (response.code == 1) {
+                    if (response.data != null) {
+                        _operationState.value = FileOperationState.Success("获取详情成功")
+                        Log.d("FileOperationViewModel", "文件详情解析成功")
+                        onComplete(true, "获取文件详情成功", response.data)
+                    } else {
+                        Log.e("FileOperationViewModel", "文件详情数据为空")
+                        _operationState.value = FileOperationState.Error("获取详情成功但数据为空")
+                        onComplete(false, "获取文件详情成功但数据为空", null)
+                    }
+                } else {
+                    Log.e("FileOperationViewModel", "获取文件详情失败: ${response.message}")
+                    _operationState.value = FileOperationState.Error(response.message ?: "获取详情失败")
+                    onComplete(false, response.message ?: "获取详情失败", null)
+                }
+            } catch (e: Exception) {
+                Log.e("FileOperationViewModel", "获取文件详情异常: ${e.message}")
+                e.printStackTrace()
+                _operationState.value = FileOperationState.Error(e.message ?: "未知错误")
+                onComplete(false, "获取文件详情发生异常: ${e.message}", null)
+            }
+        }
+    }
+    
     // 重置操作状态为空闲
     fun resetOperationState() {
         _operationState.value = FileOperationState.Idle

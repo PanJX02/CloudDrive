@@ -109,7 +109,7 @@ interface MyNetworkApiService {
     ): NetworkResponse<Unit>
 
     // 文件详情
-    @GET("files/detail")
+    @POST("files/detail")
     suspend fun getFileDetails(
         @Body request: UserFileIdsRequest
     ): NetworkResponse<FileDetail>

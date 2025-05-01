@@ -174,6 +174,13 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
     }
     
     /**
+     * 获取文件详情
+     */
+    fun getFileDetails(fileIds: List<Long>, onComplete: (Boolean, String, com.panjx.clouddrive.core.modle.FileDetail?) -> Unit) {
+        operationViewModel.getFileDetails(fileIds, onComplete)
+    }
+    
+    /**
      * 重置操作状态
      */
     fun resetOperationState() {

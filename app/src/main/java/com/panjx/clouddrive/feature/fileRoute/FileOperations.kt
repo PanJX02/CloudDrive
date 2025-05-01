@@ -181,8 +181,32 @@ class FileOperations(
      */
     fun showFileDetails(selectedFileIds: List<Long>) {
         Log.d(TAG, "查看详情操作: $selectedFileIds")
-        // TODO: 实现查看文件详情逻辑
-        clearSelection()
+        
+        if (selectedFileIds.isEmpty()) {
+            Log.d(TAG, "未选择任何文件，取消查看详情操作")
+            return
+        }
+        
+        if (selectedFileIds.size > 1) {
+            Log.d(TAG, "选择了多个文件，暂只支持查看单个文件详情")
+            // 这里可以添加提示用户只能查看单个文件详情的逻辑
+            return
+        }
+        
+        Log.d(TAG, "开始获取文件详情，fileId: ${selectedFileIds[0]}")
+        
+        // 调用ViewModel获取文件详情
+        viewModel.getFileDetails(selectedFileIds) { success, message, fileDetail ->
+            if (success) {
+                Log.d(TAG, "获取文件详情成功: $message")
+                Log.d(TAG, "文件详情: $fileDetail")
+            } else {
+                Log.e(TAG, "获取文件详情失败: $message")
+                // 可以添加错误提示逻辑
+            }
+        }
+        
+        // 不清空选中，让用户可以继续操作
     }
 
     companion object {
