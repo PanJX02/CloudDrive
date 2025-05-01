@@ -1,6 +1,5 @@
 package com.panjx.clouddrive.feature.fileRoute
 
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -41,39 +40,32 @@ fun FileRoute(
         }
     }
 
+    // 创建文件操作实例
+    val fileOperations = remember {
+        FileOperations(
+            viewModel = viewModel,
+            downloadViewModel = downloadViewModel,
+            context = context,
+            clearSelection = clearSelection
+        )
+    }
+
     // 在这里定义操作实现，访问viewModel和selectedFiles
     val fileActions = remember(selectedFiles.size) { // 当选择改变时重新创建操作
         val hasSelection = selectedFiles.isNotEmpty()
+        val selectedFileIds = selectedFiles.toList()
+        
         FileActions(
-            onDownloadClick = { 
-                Log.d("FileRoute", "================== 下载流程开始 ==================")
-                Log.d("FileRoute", "用户点击下载按钮，选中文件数量: ${selectedFiles.size}")
-                Log.d("FileRoute", "选中的文件ID: ${selectedFiles.toList()}")
-                
-                // 获取选中的文件对象
-                val filesToDownload = viewModel.getSelectedFiles(selectedFiles.toList())
-                Log.d("FileRoute", "获取到的文件对象数量: ${filesToDownload.size}")
-                filesToDownload.forEachIndexed { index, file ->
-                    Log.d("FileRoute", "文件[$index]: id=${file.id}, 名称=${file.fileName}, 类型=${file.folderType}")
-                }
-                
-                // 调用下载ViewModel进行下载
-                Log.d("FileRoute", "调用DownloadTransfersViewModel.addDownloadTasks开始下载...")
-                downloadViewModel.addDownloadTasks(filesToDownload, context)
-                
-                // 清空选中
-                clearSelection()
-                Log.d("FileRoute", "已清空选中状态")
-            },
-            onMoveClick = { Log.d("FileRoute", "Move clicked: ${selectedFiles.toList()}") /* TODO: viewModel.move(selectedFiles) */ },
-            onCopyClick = { Log.d("FileRoute", "Copy clicked: ${selectedFiles.toList()}") /* TODO: viewModel.copy(selectedFiles) */ },
-            onFavoriteClick = { Log.d("FileRoute", "Favorite clicked: ${selectedFiles.toList()}") /* TODO: viewModel.favorite(selectedFiles) */ },
-            onRenameClick = { Log.d("FileRoute", "Rename clicked: ${selectedFiles.toList()}") /* TODO: viewModel.rename(selectedFiles) */ },
-            onDeleteClick = { Log.d("FileRoute", "Delete clicked: ${selectedFiles.toList()}") /* TODO: viewModel.delete(selectedFiles) */ },
-            onShareClick = { Log.d("FileRoute", "Share clicked: ${selectedFiles.toList()}") /* TODO: viewModel.share(selectedFiles) */ },
-            onDetailsClick = { Log.d("FileRoute", "Details clicked: ${selectedFiles.toList()}") /* TODO: viewModel.details(selectedFiles) */ },
+            onDownloadClick = { fileOperations.downloadFiles(selectedFileIds) },
+            onMoveClick = { fileOperations.moveFiles(selectedFileIds) },
+            onCopyClick = { fileOperations.copyFiles(selectedFileIds) },
+            onFavoriteClick = { fileOperations.toggleFavorite(selectedFileIds) },
+            onRenameClick = { fileOperations.renameFile(selectedFileIds) },
+            onDeleteClick = { fileOperations.deleteFiles(selectedFileIds) },
+            onShareClick = { fileOperations.shareFiles(selectedFileIds) },
+            onDetailsClick = { fileOperations.showFileDetails(selectedFileIds) },
             hasSelection = hasSelection,
-            selectedFileIds = selectedFiles.toList() // 存储选中的文件ID列表
+            selectedFileIds = selectedFileIds
         )
     }
 

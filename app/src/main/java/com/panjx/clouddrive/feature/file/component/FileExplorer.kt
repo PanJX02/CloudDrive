@@ -11,8 +11,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.panjx.clouddrive.feature.fileRoute.FileUiState
 import com.panjx.clouddrive.feature.fileRoute.FileViewModel
+import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
 
 /**
  * 文件浏览器组件，组合面包屑导航和文件列表

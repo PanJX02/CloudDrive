@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.dp
 import com.panjx.clouddrive.core.design.component.FileTopBar
 import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.feature.file.component.FileExplorer
-import com.panjx.clouddrive.feature.fileRoute.FileUiState
 import com.panjx.clouddrive.feature.fileRoute.FileViewModel
+import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
 import com.panjx.clouddrive.feature.transfersRoute.TransfersViewModel
 
 /**

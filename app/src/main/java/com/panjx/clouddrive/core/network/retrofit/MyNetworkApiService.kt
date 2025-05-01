@@ -81,21 +81,21 @@ interface MyNetworkApiService {
     // 复制文件
     @POST("files/copy")
     suspend fun copyFiles(
-        @Query("fileIds") fileIds: List<Long>,
-        @Query("targetFolderId") targetFolderId: Long
+        @Body ids: List<Long>,
+        @Body targetFolderId: Long
     ): NetworkResponse<Unit>
     
     // 移动文件
     @POST("files/move")
     suspend fun moveFiles(
-        @Query("fileIds") fileIds: List<Long>,
-        @Query("targetFolderId") targetFolderId: Long
+        @Body ids: List<Long>,
+        @Body targetFolderId: Long
     ): NetworkResponse<Unit>
     
     // 创建文件夹
     @POST("folders/create")
     suspend fun createFolder(
-        @Query("name") name: String,
-        @Query("parentId") parentId: Long
+        @Body folderName: String,
+        @Body parentId: Long
     ): NetworkResponse<Unit>
 }

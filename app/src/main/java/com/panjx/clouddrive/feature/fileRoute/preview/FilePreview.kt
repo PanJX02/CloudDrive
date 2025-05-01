@@ -6,8 +6,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.panjx.clouddrive.core.design.theme.MyAppTheme
-import com.panjx.clouddrive.feature.fileRoute.FileUiState
 import com.panjx.clouddrive.feature.fileRoute.component.FileScreen
+import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
 
 /**
  * 文件界面预览

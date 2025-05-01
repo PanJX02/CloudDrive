@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.panjx.clouddrive.core.modle.File
-import com.panjx.clouddrive.feature.fileRoute.FileUiState
+import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
 
 /**
  * 文件列表组件
