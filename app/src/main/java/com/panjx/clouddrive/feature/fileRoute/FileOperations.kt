@@ -170,10 +170,20 @@ class FileOperations(
     /**
      * 分享文件
      */
-    fun shareFiles(selectedFileIds: List<Long>) {
+    fun shareFiles(selectedFileIds: List<Long>, onShowShareDialog: (List<Long>) -> Unit) {
         Log.d(TAG, "分享操作: $selectedFileIds")
-        // TODO: 实现分享文件逻辑
-        clearSelection()
+        
+        if (selectedFileIds.isEmpty()) {
+            Log.d(TAG, "未选择任何文件，取消分享操作")
+            return
+        }
+        
+        Log.d(TAG, "显示分享有效期选择对话框")
+        
+        // 调用回调函数显示分享对话框
+        onShowShareDialog(selectedFileIds)
+        
+        // 不清空选中，由对话框处理完成后清空
     }
 
     /**

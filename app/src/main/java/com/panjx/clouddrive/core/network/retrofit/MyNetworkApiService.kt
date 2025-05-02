@@ -8,12 +8,15 @@ import com.panjx.clouddrive.core.modle.request.DownloadRequest
 import com.panjx.clouddrive.core.modle.request.MoveFilesRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
 import com.panjx.clouddrive.core.modle.request.RenameFileRequest
+import com.panjx.clouddrive.core.modle.request.SaveShareFilesRequest
+import com.panjx.clouddrive.core.modle.request.ShareRequest
 import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
+import com.panjx.clouddrive.core.modle.response.ShareResponse
 import com.panjx.clouddrive.core.modle.response.UploadResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -131,4 +134,25 @@ interface MyNetworkApiService {
     suspend fun unFavorites(
         @Body request: UserFileIdsRequest
     ): NetworkResponse<Unit>
+
+    // 分享文件
+    @POST("share")
+    suspend fun shareFile(
+        @Body request: ShareRequest
+    ): NetworkResponse<ShareResponse>
+
+    // 分享文件列表
+    @GET("share/files")
+    suspend fun shareFileList(
+        @Query("shareKey") shareKey: String,
+        @Query("code") code: String,
+        @Query("folderId") folderId: Long?
+    ): NetworkResponse<NetworkPageData<File>>
+
+    // 转存文件
+    @POST("share/save")
+    suspend fun saveShareFiles(
+        @Body request: SaveShareFilesRequest
+    ): NetworkResponse<Unit>
+
 }

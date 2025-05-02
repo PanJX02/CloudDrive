@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +45,8 @@ fun FileActionBar(
     onDeleteClick: () -> Unit,
     onShareClick: () -> Unit,
     onDetailsClick: () -> Unit,
+    showSaveButton: Boolean = false,
+    onSaveClick: () -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -73,7 +76,12 @@ fun FileActionBar(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ActionItem(icon = Icons.Default.DriveFileRenameOutline, label = "重命名", onClick = onRenameClick)
+            if (showSaveButton) {
+                // 在分享内容页面添加保存按钮替换重命名
+                ActionItem(icon = Icons.Default.SaveAlt, label = "保存", onClick = onSaveClick)
+            } else {
+                ActionItem(icon = Icons.Default.DriveFileRenameOutline, label = "重命名", onClick = onRenameClick)
+            }
             ActionItem(icon = Icons.Default.DeleteOutline, label = "删除", onClick = onDeleteClick)
             ActionItem(icon = Icons.Default.Share, label = "分享", onClick = onShareClick)
             ActionItem(icon = Icons.Default.Info, label = "详情", onClick = onDetailsClick)

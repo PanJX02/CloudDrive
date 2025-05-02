@@ -28,6 +28,25 @@ class FileOperationViewModel(application: Application) : AndroidViewModel(applic
     // 文件操作状态（复制、移动等）
     private val _operationState = MutableStateFlow<FileOperationState>(FileOperationState.Idle)
     val operationState: StateFlow<FileOperationState> = _operationState
+    
+    // 需要刷新的文件夹ID集合
+    private val foldersToRefresh = mutableSetOf<Long>()
+    
+    // 标记一个文件夹需要刷新
+    fun markFolderForRefresh(folderId: Long) {
+        Log.d("FileOperationViewModel", "标记文件夹需要刷新: $folderId")
+        foldersToRefresh.add(folderId)
+    }
+    
+    // 检查文件夹是否需要刷新
+    fun checkAndClearRefreshFlag(folderId: Long): Boolean {
+        val needsRefresh = foldersToRefresh.contains(folderId)
+        if (needsRefresh) {
+            Log.d("FileOperationViewModel", "文件夹需要刷新，清除标记: $folderId")
+            foldersToRefresh.remove(folderId)
+        }
+        return needsRefresh
+    }
 
     // 复制文件到指定目录
     fun copyFiles(fileIds: List<Long>, targetFolderId: Long, onComplete: (Boolean, String) -> Unit) {
@@ -284,5 +303,122 @@ class FileOperationViewModel(application: Application) : AndroidViewModel(applic
     // 重置操作状态为空闲
     fun resetOperationState() {
         _operationState.value = FileOperationState.Idle
+    }
+    
+    // 分享文件
+    fun shareFile(fileIds: List<Long>, validType: Int, onComplete: (Boolean, String, com.panjx.clouddrive.core.modle.response.ShareResponse?) -> Unit) {
+        if (fileIds.isEmpty()) {
+            onComplete(false, "未选择任何文件", null)
+            return
+        }
+        
+        _operationState.value = FileOperationState.Loading
+        
+        viewModelScope.launch {
+            try {
+                Log.d("FileOperationViewModel", "开始分享文件: ${fileIds.joinToString()}, 有效期类型: $validType")
+                
+                // 调用API执行分享
+                val response = networkDataSource.shareFile(fileIds, validType)
+                Log.d("FileOperationViewModel", "分享文件响应: code=${response.code}, message=${response.message}")
+                
+                if (response.code == 1) {
+                    if (response.data != null) {
+                        _operationState.value = FileOperationState.Success("分享成功")
+                        Log.d("FileOperationViewModel", "分享成功: shareKey=${response.data.shareKey}")
+                        onComplete(true, "分享成功", response.data)
+                    } else {
+                        Log.e("FileOperationViewModel", "分享成功但数据为空")
+                        _operationState.value = FileOperationState.Error("分享成功但数据为空")
+                        onComplete(false, "分享成功但数据为空", null)
+                    }
+                } else {
+                    Log.e("FileOperationViewModel", "分享文件失败: ${response.message}")
+                    _operationState.value = FileOperationState.Error(response.message ?: "分享失败")
+                    onComplete(false, response.message ?: "分享失败", null)
+                }
+            } catch (e: Exception) {
+                Log.e("FileOperationViewModel", "分享文件异常: ${e.message}")
+                e.printStackTrace()
+                _operationState.value = FileOperationState.Error(e.message ?: "未知错误")
+                onComplete(false, "分享文件发生异常: ${e.message}", null)
+            }
+        }
+    }
+
+    // 获取分享文件列表
+    fun getShareFileList(shareKey: String, code: String, folderId: Long? = null, onComplete: (Boolean, String, com.panjx.clouddrive.core.modle.response.NetworkPageData<com.panjx.clouddrive.core.modle.File>?) -> Unit) {
+        if (shareKey.isBlank()) {
+            onComplete(false, "分享密钥不能为空", null)
+            return
+        }
+        
+        _operationState.value = FileOperationState.Loading
+        
+        viewModelScope.launch {
+            try {
+                Log.d("FileOperationViewModel", "开始获取分享内容: shareKey=$shareKey, code=$code, folderId=$folderId")
+                
+                // 调用API获取分享内容
+                val response = networkDataSource.getShareFileList(shareKey, code, folderId)
+                Log.d("FileOperationViewModel", "获取分享内容响应: code=${response.code}, message=${response.message}")
+                
+                if (response.code == 1) {
+                    if (response.data != null) {
+                        _operationState.value = FileOperationState.Success("获取分享内容成功")
+                        Log.d("FileOperationViewModel", "获取分享内容成功: 共${response.data.list?.size ?: 0}个文件")
+                        onComplete(true, "获取分享内容成功", response.data)
+                    } else {
+                        Log.e("FileOperationViewModel", "获取分享内容成功但数据为空")
+                        _operationState.value = FileOperationState.Error("获取分享内容成功但数据为空")
+                        onComplete(false, "获取分享内容成功但数据为空", null)
+                    }
+                } else {
+                    Log.e("FileOperationViewModel", "获取分享内容失败: ${response.message}")
+                    _operationState.value = FileOperationState.Error(response.message ?: "获取分享内容失败")
+                    onComplete(false, response.message ?: "获取分享内容失败", null)
+                }
+            } catch (e: Exception) {
+                Log.e("FileOperationViewModel", "获取分享内容异常: ${e.message}")
+                e.printStackTrace()
+                _operationState.value = FileOperationState.Error(e.message ?: "未知错误")
+                onComplete(false, "获取分享内容发生异常: ${e.message}", null)
+            }
+        }
+    }
+    
+    // 保存分享文件
+    fun saveShareFiles(fileIds: List<Long>, targetFolderId: Long, shareKey: String, code: String, onComplete: (Boolean, String) -> Unit) {
+        if (fileIds.isEmpty()) {
+            onComplete(false, "未选择任何文件")
+            return
+        }
+        
+        _operationState.value = FileOperationState.Loading
+        
+        viewModelScope.launch {
+            try {
+                Log.d("FileOperationViewModel", "开始保存分享文件: fileIds=${fileIds.joinToString()}, targetFolderId=$targetFolderId, shareKey=$shareKey")
+                
+                // 调用API保存分享文件
+                val response = networkDataSource.saveShareFiles(fileIds, targetFolderId, shareKey, code)
+                Log.d("FileOperationViewModel", "保存分享文件响应: code=${response.code}, message=${response.message}")
+                
+                if (response.code == 1) {
+                    _operationState.value = FileOperationState.Success("保存成功")
+                    Log.d("FileOperationViewModel", "保存分享文件成功")
+                    onComplete(true, "保存成功")
+                } else {
+                    Log.e("FileOperationViewModel", "保存分享文件失败: ${response.message}")
+                    _operationState.value = FileOperationState.Error(response.message ?: "保存失败")
+                    onComplete(false, response.message ?: "保存失败")
+                }
+            } catch (e: Exception) {
+                Log.e("FileOperationViewModel", "保存分享文件异常: ${e.message}")
+                e.printStackTrace()
+                _operationState.value = FileOperationState.Error(e.message ?: "未知错误")
+                onComplete(false, "保存分享文件发生异常: ${e.message}")
+            }
+        }
     }
 } 

@@ -52,7 +52,10 @@ import com.panjx.clouddrive.feature.file.navigateToFolderSelection
 import com.panjx.clouddrive.feature.fileRoute.FileActions
 import com.panjx.clouddrive.feature.fileRoute.FileRoute
 import com.panjx.clouddrive.feature.fileRoute.FileViewModel
+import com.panjx.clouddrive.feature.fileRoute.ShareFileState
 import com.panjx.clouddrive.feature.fileRoute.component.FileActionBar
+import com.panjx.clouddrive.feature.fileRoute.navigation.navigateToShareFileList
+import com.panjx.clouddrive.feature.fileRoute.navigation.shareFileListScreen
 import com.panjx.clouddrive.feature.meRoute.MeRoute
 import com.panjx.clouddrive.feature.profile.ProfileRoute
 import com.panjx.clouddrive.feature.recycleBin.RecycleBinRoute
@@ -176,6 +179,9 @@ fun MainScreen(
                             onDispose = { 
                                 fileActions = FileActions()
                             },
+                            onNavigateToShareFileList = { shareKey, shareCode ->
+                                navController.navigateToShareFileList(shareKey, shareCode)
+                            },
                             extraBottomSpace = extraBottomSpaceHeight // 传递计算出的额外空间高度
                         )
                     }
@@ -290,8 +296,112 @@ fun MainScreen(
                                         navController.popBackStack()
                                     }
                                 }
+                                else -> { /* 不处理其他类型 */ }
+                            }
+                        },
+                        // 分享文件转存处理
+                        onShareSaveSelected = { targetFolderId, shareKey, shareCode ->
+                            // 获取当前在分享页面选中的文件ID列表
+                            val selectedShareFileIds = ShareFileState.selectedFileIds
+                            
+                            // 记录一下状态用于调试
+                            Log.d("MainRote", "转存处理: 选中文件数: ${selectedShareFileIds.size}, shareKey: $shareKey")
+                            
+                            // 如果没有选择文件，显示提示并返回
+                            if (selectedShareFileIds.isEmpty()) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "请选择要转存的文件",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                                // 返回文件页面
+                                navController.popBackStack()
+                                navController.navigate(Screen.File.route) {
+                                    popUpTo(Screen.File.route) {
+                                        inclusive = true
+                                    }
+                                }
+                            } else {
+                                // 调用ViewModel执行转存操作
+                                scope.launch {
+                                    try {
+                                        // 显示加载中提示
+                                        snackbarHostState.showSnackbar("正在转存...")
+                                        
+                                        // 转存分享文件到选择的目标文件夹
+                                        fileViewModel.saveShareFiles(
+                                            fileIds = selectedShareFileIds,
+                                            targetFolderId = targetFolderId,
+                                            shareKey = shareKey,
+                                            shareCode = shareCode
+                                        ) { success, message ->
+                                            // 显示操作结果
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar(
+                                                    message = message,
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                            }
+                                            
+                                            // 清空选择状态
+                                            ShareFileState.clear()
+                                            
+                                            // 添加：如果转存成功，先刷新当前目录内容
+                                            if (success) {
+                                                // 如果转存目标是当前目录，直接刷新
+                                                if (targetFolderId == fileViewModel.currentDirId.value) {
+                                                    // 刷新当前目录内容
+                                                    fileViewModel.loadData()
+                                                } else {
+                                                    // 否则标记目标文件夹需要刷新
+                                                    fileViewModel.markFolderForRefresh(targetFolderId)
+                                                }
+                                                
+                                                // 返回文件页面，先返回上一级
+                                                navController.popBackStack()
+                                                // 再导航到文件页面
+                                                navController.navigate(Screen.File.route) {
+                                                    // 清除导航栈中所有内容，避免重复
+                                                    popUpTo(Screen.File.route) {
+                                                        inclusive = true
+                                                    }
+                                                }
+                                            } else {
+                                                // 失败时只返回上一级
+                                                navController.popBackStack()
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        // 显示错误信息
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                message = "转存失败: ${e.message}",
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        }
+                                        
+                                        // 清空选择状态
+                                        ShareFileState.clear()
+                                        
+                                        // 返回文件页面
+                                        navController.popBackStack()
+                                        // 异常时也要返回文件页面
+                                        navController.navigate(Screen.File.route) {
+                                            popUpTo(Screen.File.route) {
+                                                inclusive = true
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
+                    )
+                    
+                    // 分享文件列表页面路由
+                    shareFileListScreen(
+                        navController = navController,
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
             }

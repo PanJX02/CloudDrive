@@ -15,10 +15,12 @@ private const val INITIAL_DIR_ID_ARG = "initialDirId"
 private const val EXCLUDE_FOLDERS_ARG = "excludeFolders"
 private const val ALLOW_MULTI_SELECT_ARG = "allowMultiSelect"
 private const val OPERATION_TYPE_ARG = "operationType"
+private const val SHARE_KEY_ARG = "shareKey"
+private const val SHARE_CODE_ARG = "shareCode"
 
 // 操作类型
 enum class FileOperationType {
-    COPY, MOVE
+    COPY, MOVE, SAVE_SHARE
 }
 
 // 导航到文件选择页面
@@ -36,6 +38,14 @@ fun NavController.navigateToFolderSelection(
     operationType: FileOperationType
 ) {
     navigate("$FOLDER_SELECTION_ROUTE/$initialDirId?excludeFolders=$excludeFolderIds&operationType=${operationType.name}")
+}
+
+// 导航到分享文件转存文件夹选择页面
+fun NavController.navigateToShareSaveFolderSelection(
+    shareKey: String,
+    shareCode: String = ""
+) {
+    navigate("$FOLDER_SELECTION_ROUTE/0?shareKey=$shareKey&shareCode=$shareCode&operationType=${FileOperationType.SAVE_SHARE.name}")
 }
 
 // 注册文件选择页面路由
@@ -72,10 +82,11 @@ fun NavGraphBuilder.fileSelectionScreen(
 // 注册文件夹选择页面路由
 fun NavGraphBuilder.folderSelectionScreen(
     onBackClick: () -> Unit,
-    onFolderSelected: (Long, FileOperationType) -> Unit
+    onFolderSelected: (Long, FileOperationType) -> Unit,
+    onShareSaveSelected: (Long, String, String) -> Unit
 ) {
     composable(
-        route = "$FOLDER_SELECTION_ROUTE/{$INITIAL_DIR_ID_ARG}?$EXCLUDE_FOLDERS_ARG={$EXCLUDE_FOLDERS_ARG}&$OPERATION_TYPE_ARG={$OPERATION_TYPE_ARG}",
+        route = "$FOLDER_SELECTION_ROUTE/{$INITIAL_DIR_ID_ARG}?$EXCLUDE_FOLDERS_ARG={$EXCLUDE_FOLDERS_ARG}&$OPERATION_TYPE_ARG={$OPERATION_TYPE_ARG}&$SHARE_KEY_ARG={$SHARE_KEY_ARG}&$SHARE_CODE_ARG={$SHARE_CODE_ARG}",
         arguments = listOf(
             navArgument(INITIAL_DIR_ID_ARG) {
                 type = NavType.LongType
@@ -88,6 +99,14 @@ fun NavGraphBuilder.folderSelectionScreen(
             navArgument(OPERATION_TYPE_ARG) {
                 type = NavType.StringType
                 defaultValue = FileOperationType.COPY.name
+            },
+            navArgument(SHARE_KEY_ARG) {
+                type = NavType.StringType
+                defaultValue = ""
+            },
+            navArgument(SHARE_CODE_ARG) {
+                type = NavType.StringType
+                defaultValue = ""
             }
         )
     ) { backStackEntry ->
@@ -95,6 +114,8 @@ fun NavGraphBuilder.folderSelectionScreen(
         val excludeFoldersString = backStackEntry.arguments?.getString(EXCLUDE_FOLDERS_ARG) ?: ""
         val operationTypeString = backStackEntry.arguments?.getString(OPERATION_TYPE_ARG) 
             ?: FileOperationType.COPY.name
+        val shareKey = backStackEntry.arguments?.getString(SHARE_KEY_ARG) ?: ""
+        val shareCode = backStackEntry.arguments?.getString(SHARE_CODE_ARG) ?: ""
         
         // 转换排除文件夹列表
         val excludeFolderIds = if (excludeFoldersString.isNotEmpty()) {
@@ -114,12 +135,27 @@ fun NavGraphBuilder.folderSelectionScreen(
         val title = when (operationType) {
             FileOperationType.COPY -> "选择复制目标位置"
             FileOperationType.MOVE -> "选择移动目标位置"
+            FileOperationType.SAVE_SHARE -> "选择分享文件转存文件夹"
         }
         
         FolderSelectionScreen(
             title = title,
             onBackClick = onBackClick,
-            onFolderSelected = { folderId -> onFolderSelected(folderId, operationType) },
+            onFolderSelected = { folderId -> 
+                // 根据操作类型调用不同的回调
+                when (operationType) {
+                    FileOperationType.SAVE_SHARE -> {
+                        // 如果是转存分享文件，调用专用回调
+                        if (shareKey.isNotEmpty()) {
+                            onShareSaveSelected(folderId, shareKey, shareCode)
+                        }
+                    }
+                    else -> {
+                        // 其他操作类型
+                        onFolderSelected(folderId, operationType)
+                    }
+                }
+            },
             excludeFolderIds = excludeFolderIds,
             initialDirectoryId = initialDirId
         )

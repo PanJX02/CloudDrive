@@ -11,12 +11,15 @@ import com.panjx.clouddrive.core.modle.request.DownloadRequest
 import com.panjx.clouddrive.core.modle.request.MoveFilesRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
 import com.panjx.clouddrive.core.modle.request.RenameFileRequest
+import com.panjx.clouddrive.core.modle.request.SaveShareFilesRequest
+import com.panjx.clouddrive.core.modle.request.ShareRequest
 import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
+import com.panjx.clouddrive.core.modle.response.ShareResponse
 import com.panjx.clouddrive.core.modle.response.UploadResponse
 import com.panjx.clouddrive.core.network.di.NetworkModule
 import com.panjx.clouddrive.core.network.retrofit.MyNetworkApiService
@@ -236,4 +239,24 @@ class MyRetrofitDatasource @Inject constructor(
         Log.d("MyRetrofitDatasource", "获取文件详情: fileId=$fileIds")
         return getService().getFileDetails(UserFileIdsRequest(fileIds))
     }
+
+    // 分享文件
+    suspend fun shareFile(fileIds: List<Long>,validType:Int): NetworkResponse<ShareResponse> {
+        Log.d("MyRetrofitDatasource", "分享文件: fileId=$fileIds")
+        return getService().shareFile(ShareRequest(fileIds,validType))
+    }
+
+
+    // 根据文件夹ID获取文件列表
+    suspend fun getShareFileList(shareKey: String, code: String, folderId: Long? = null): NetworkResponse<NetworkPageData<File>> {
+        Log.d("MyRetrofitDatasource", "根据文件夹ID获取文件列表: shareKey=$shareKey, code=$code, folderId=$folderId")
+        return getService().shareFileList(shareKey, code, folderId)
+    }
+
+    // 转存文件
+    suspend fun saveShareFiles(fileIds: List<Long>, targetFolderId: Long, shareKey: String, code: String): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "转存文件: fileIds=$fileIds, targetFolderId=$targetFolderId, shareKey=$shareKey")
+        return getService().saveShareFiles(SaveShareFilesRequest(fileIds, targetFolderId, shareKey, code))
+    }
+
 }

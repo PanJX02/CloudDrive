@@ -1,5 +1,9 @@
 package com.panjx.clouddrive.feature.fileRoute
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.panjx.clouddrive.feature.fileRoute.component.FileScreen
+import com.panjx.clouddrive.feature.fileRoute.component.ShareOptionsDialog
+import com.panjx.clouddrive.feature.fileRoute.component.ShareResultDialog
 import com.panjx.clouddrive.feature.transfersRoute.DownloadTransfersViewModel
 
 /**
@@ -26,6 +32,8 @@ fun FileRoute(
     onActionsReady: (FileActions) -> Unit,
     // 当路由被销毁时的回调
     onDispose: () -> Unit,
+    // 导航到分享文件列表
+    onNavigateToShareFileList: ((shareKey: String, shareCode: String) -> Unit)? = null,
     extraBottomSpace: Dp = 0.dp
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -44,12 +52,27 @@ fun FileRoute(
     var fileDetail = remember { mutableStateOf<com.panjx.clouddrive.core.modle.FileDetail?>(null) }
     var isLoadingFileDetail = remember { mutableStateOf(false) }
     var fileDetailErrorMessage = remember { mutableStateOf("") }
+    
+    // 分享对话框状态管理
+    var showShareOptionsDialog = remember { mutableStateOf(false) }
+    var filesToShare = remember { mutableStateOf<List<Long>>(emptyList()) }
+    var showShareResultDialog = remember { mutableStateOf(false) }
+    var shareResponse = remember { mutableStateOf<com.panjx.clouddrive.core.modle.response.ShareResponse?>(null) }
 
     // 创建函数来清空选中文件
     val clearSelection = {
         if (selectedFiles.isNotEmpty()) {
             selectedFiles.clear()
         }
+    }
+    
+    // 复制到剪贴板的函数
+    val copyToClipboard = { text: String, isWithCode: Boolean ->
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("分享链接", text)
+        clipboard.setPrimaryClip(clip)
+        val message = if (isWithCode) "已复制自带提取码的链接到剪贴板" else "已复制链接和提取码到剪贴板"
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
     // 创建文件操作实例
@@ -87,7 +110,13 @@ fun FileRoute(
                 }
             },
             onDeleteClick = { fileOperations.deleteFiles(selectedFileIds) },
-            onShareClick = { fileOperations.shareFiles(selectedFileIds) },
+            onShareClick = { 
+                // 显示分享对话框
+                fileOperations.shareFiles(selectedFileIds) { fileIds ->
+                    filesToShare.value = fileIds
+                    showShareOptionsDialog.value = true
+                }
+            },
             onDetailsClick = { 
                 // 处理查看详情操作
                 fileDetailErrorMessage.value = ""
@@ -150,6 +179,8 @@ fun FileRoute(
         onNavigateToDirectory = handleNavigateToDirectory, // 传递导航处理函数
         clearSelection = clearSelection, // 传递清空选择函数
         extraBottomSpace = extraBottomSpace, // 传递额外底部空间
+        // 传递导航到分享文件列表的函数
+        onNavigateToShareFileList = onNavigateToShareFileList,
         // 传递重命名对话框状态
         showRenameDialog = showRenameDialog.value,
         onShowRenameDialogChange = { showRenameDialog.value = it },
@@ -164,4 +195,44 @@ fun FileRoute(
         isLoadingFileDetail = isLoadingFileDetail.value,
         fileDetailErrorMessage = fileDetailErrorMessage.value
     )
+    
+    // 分享选项对话框
+    if (showShareOptionsDialog.value) {
+        ShareOptionsDialog(
+            onDismiss = { 
+                showShareOptionsDialog.value = false
+                clearSelection()
+            },
+            onConfirm = { validType ->
+                showShareOptionsDialog.value = false
+                
+                // 调用API进行分享
+                viewModel.shareFile(filesToShare.value, validType) { success, message, response ->
+                    if (success && response != null) {
+                        // 显示分享结果对话框
+                        shareResponse.value = response
+                        showShareResultDialog.value = true
+                    } else {
+                        // 显示错误提示
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        clearSelection()
+                    }
+                }
+            }
+        )
+    }
+    
+    // 分享结果对话框
+    if (showShareResultDialog.value && shareResponse.value != null) {
+        ShareResultDialog(
+            shareResponse = shareResponse.value!!,
+            onDismiss = { 
+                showShareResultDialog.value = false
+                clearSelection()
+            },
+            onCopy = { text, isWithCode ->
+                copyToClipboard(text, isWithCode)
+            }
+        )
+    }
 }

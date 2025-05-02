@@ -46,6 +46,7 @@ fun FileScreen(
     clearSelection: () -> Unit,
     extraBottomSpace: Dp = 0.dp,
     toSearch: () -> Unit = {},
+    onNavigateToShareFileList: ((shareKey: String, shareCode: String) -> Unit)? = null,
     errorContent: @Composable (() -> Unit)? = null,
     // 重命名对话框参数
     showRenameDialog: Boolean = false,
@@ -175,12 +176,18 @@ fun FileScreen(
             },
             onConfirm = {
                 if (shareKey.isNotBlank()) {
-                    // TODO: 处理获取分享内容的逻辑
+                    // 处理获取分享内容的逻辑
                     Log.d("FileScreen", "获取分享内容: shareKey=$shareKey, code=$shareCode")
+                    // 隐藏对话框
+                    showShareContentDialog = false
+                    
+                    // 调用导航函数
+                    onNavigateToShareFileList?.invoke(shareKey, shareCode)
+                    
+                    // 清空分享密钥和验证码
+                    shareKey = ""
+                    shareCode = ""
                 }
-                showShareContentDialog = false
-                shareKey = ""
-                shareCode = ""
             }
         )
     }

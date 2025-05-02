@@ -57,8 +57,11 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
         // 更新导航路径
         navigationViewModel.navigateToDirectory(dirId, dirName)
         
+        // 检查目录是否被标记为需要刷新
+        val needsRefresh = isRefresh || operationViewModel.checkAndClearRefreshFlag(dirId)
+        
         // 加载目录内容
-        if (isRefresh) {
+        if (needsRefresh) {
             listViewModel.refreshData(dirId)
         } else {
             listViewModel.loadDirectoryContent(dirId)
@@ -181,9 +184,59 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
     }
     
     /**
+     * 分享文件
+     */
+    fun shareFile(fileIds: List<Long>, validType: Int, onComplete: (Boolean, String, com.panjx.clouddrive.core.modle.response.ShareResponse?) -> Unit) {
+        operationViewModel.shareFile(fileIds, validType, onComplete)
+    }
+    
+    /**
      * 重置操作状态
      */
     fun resetOperationState() {
         operationViewModel.resetOperationState()
+    }
+    
+    /**
+     * 标记文件夹需要刷新
+     */
+    fun markFolderForRefresh(folderId: Long) {
+        operationViewModel.markFolderForRefresh(folderId)
+    }
+
+    /**
+     * 获取分享文件列表
+     */
+    fun getShareFileList(shareKey: String, code: String, folderId: Long? = null, onComplete: (Boolean, String, List<File>?) -> Unit) {
+        operationViewModel.getShareFileList(shareKey, code, folderId) { success, message, data ->
+            if (success && data != null) {
+                // 提取文件列表
+                val fileList = data.list ?: emptyList()
+                onComplete(true, "获取分享内容成功", fileList)
+            } else {
+                onComplete(false, message, null)
+            }
+        }
+    }
+    
+    /**
+     * 保存分享文件到指定目录
+     */
+    fun saveShareFiles(fileIds: List<Long>, targetFolderId: Long, shareKey: String, shareCode: String, onComplete: (Boolean, String) -> Unit) {
+        operationViewModel.saveShareFiles(fileIds, targetFolderId, shareKey, shareCode) { success, message ->
+            // 如果保存成功且目标文件夹是当前文件夹，刷新列表
+            if (success) {
+                // 使用下拉刷新而不是直接加载
+                if (targetFolderId == currentDirId.value) {
+                    // 在当前浏览的目录，直接刷新
+                    listViewModel.refreshData(currentDirId.value)
+                } else {
+                    // 不在当前浏览的目录，标记该目录需要刷新
+                    // 当用户导航到这个目录时会刷新
+                    operationViewModel.markFolderForRefresh(targetFolderId)
+                }
+            }
+            onComplete(success, message)
+        }
     }
 }
