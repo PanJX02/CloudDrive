@@ -1,5 +1,11 @@
 package com.panjx.clouddrive.core.modle.response
 
+import kotlinx.serialization.Serializable
+
+/**
+ * 公告
+ */
+@Serializable
 data class Announcement (
     val id: Int,
     val title: String,

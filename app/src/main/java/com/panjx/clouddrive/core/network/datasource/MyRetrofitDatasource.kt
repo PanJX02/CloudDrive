@@ -15,6 +15,7 @@ import com.panjx.clouddrive.core.modle.request.SaveShareFilesRequest
 import com.panjx.clouddrive.core.modle.request.ShareRequest
 import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
+import com.panjx.clouddrive.core.modle.response.Announcement
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
@@ -235,6 +236,21 @@ class MyRetrofitDatasource @Inject constructor(
             return response
         } catch (e: Exception) {
             Log.e("MyRetrofitDatasource", "取消分享异常: ${e.message}")
+            throw e
+        }
+    }
+
+    // 获取公告
+    suspend fun getAnnouncement(): NetworkResponse<List<Announcement>> {
+        Log.d("MyRetrofitDatasource", "获取公告")
+        try {
+            val response = getService().getAnnouncements()
+            if (response.code != 1) {
+                Log.e("MyRetrofitDatasource", "获取公告失败: ${response.message}")
+            }
+            return response
+        } catch (e: Exception) {
+            Log.e("MyRetrofitDatasource", "获取公告异常: ${e.message}")
             throw e
         }
     }
