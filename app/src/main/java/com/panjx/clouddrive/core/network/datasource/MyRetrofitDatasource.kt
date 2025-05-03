@@ -5,6 +5,7 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 import com.panjx.clouddrive.core.config.Config
 import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.core.modle.FileDetail
+import com.panjx.clouddrive.core.modle.request.CancelShareRequest
 import com.panjx.clouddrive.core.modle.request.CopyFilesRequest
 import com.panjx.clouddrive.core.modle.request.CreateFolderRequest
 import com.panjx.clouddrive.core.modle.request.DownloadRequest
@@ -19,6 +20,7 @@ import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
+import com.panjx.clouddrive.core.modle.response.ShareListResponse
 import com.panjx.clouddrive.core.modle.response.ShareResponse
 import com.panjx.clouddrive.core.modle.response.UploadResponse
 import com.panjx.clouddrive.core.network.di.NetworkModule
@@ -257,6 +259,84 @@ class MyRetrofitDatasource @Inject constructor(
     suspend fun saveShareFiles(fileIds: List<Long>, targetFolderId: Long, shareKey: String, code: String): NetworkResponse<Unit> {
         Log.d("MyRetrofitDatasource", "转存文件: fileIds=$fileIds, targetFolderId=$targetFolderId, shareKey=$shareKey")
         return getService().saveShareFiles(SaveShareFilesRequest(fileIds, targetFolderId, shareKey, code))
+    }
+
+    // 获取分享文件列表
+    suspend fun getShareList(): NetworkResponse<List<ShareListResponse>> {
+        Log.d("MyRetrofitDatasource", "========== 开始获取分享列表API调用 ==========")
+        
+        try {
+            // 获取当前服务器地址
+            val endpoint = Config.getEndpoint(userPreferences)
+            Log.d("MyRetrofitDatasource", "当前服务器地址: $endpoint")
+            
+            val response = getService().getShareList()
+            
+            Log.d("MyRetrofitDatasource", "API调用完成，响应码: ${response.code}")
+            Log.d("MyRetrofitDatasource", "响应消息: ${response.message}")
+            
+            if (response.code == 1) {
+                Log.d("MyRetrofitDatasource", "获取分享列表成功:")
+                Log.d("MyRetrofitDatasource", "- 分享数量: ${response.data?.size ?: 0}")
+                
+                // 记录每个分享的基本信息
+                response.data?.forEachIndexed { index, shareItem ->
+                    Log.d("MyRetrofitDatasource", "分享[$index]: ${shareItem.shareName}, ID: ${shareItem.shareId}, 浏览次数: ${shareItem.showCount}")
+                }
+            } else {
+                Log.e("MyRetrofitDatasource", "获取分享列表失败:")
+                Log.e("MyRetrofitDatasource", "- 错误码: ${response.code}")
+                Log.e("MyRetrofitDatasource", "- 错误消息: ${response.message}")
+            }
+            
+            Log.d("MyRetrofitDatasource", "========== 获取分享列表API调用结束 ==========")
+            return response
+        } catch (e: Exception) {
+            Log.e("MyRetrofitDatasource", "获取分享列表异常:", e)
+            Log.e("MyRetrofitDatasource", "- 异常类型: ${e.javaClass.simpleName}")
+            Log.e("MyRetrofitDatasource", "- 异常消息: ${e.message}")
+            Log.e("MyRetrofitDatasource", "- 异常堆栈: ", e)
+            Log.d("MyRetrofitDatasource", "========== 获取分享列表API调用结束(异常) ==========")
+            throw e
+        }
+    }
+    
+    // 取消分享
+    suspend fun cancelShare(shareKeyWithCode: String): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "========== 开始取消分享API调用 ==========")
+        Log.d("MyRetrofitDatasource", "- 分享链接(shareKeyWithCode): $shareKeyWithCode")
+        
+        try {
+            // 获取当前服务器地址
+            val endpoint = Config.getEndpoint(userPreferences)
+            Log.d("MyRetrofitDatasource", "当前服务器地址: $endpoint")
+            
+            val request = CancelShareRequest(shareKeyWithCode)
+            Log.d("MyRetrofitDatasource", "请求参数: shareKey=${request.shareKey}, code=${request.code}")
+            
+            val response = getService().cancelShare(shareKeyWithCode)
+            
+            Log.d("MyRetrofitDatasource", "API调用完成，响应码: ${response.code}")
+            Log.d("MyRetrofitDatasource", "响应消息: ${response.message}")
+            
+            if (response.code == 1) {
+                Log.d("MyRetrofitDatasource", "取消分享成功")
+            } else {
+                Log.e("MyRetrofitDatasource", "取消分享失败:")
+                Log.e("MyRetrofitDatasource", "- 错误码: ${response.code}")
+                Log.e("MyRetrofitDatasource", "- 错误消息: ${response.message}")
+            }
+            
+            Log.d("MyRetrofitDatasource", "========== 取消分享API调用结束 ==========")
+            return response
+        } catch (e: Exception) {
+            Log.e("MyRetrofitDatasource", "取消分享异常:", e)
+            Log.e("MyRetrofitDatasource", "- 异常类型: ${e.javaClass.simpleName}")
+            Log.e("MyRetrofitDatasource", "- 异常消息: ${e.message}")
+            Log.e("MyRetrofitDatasource", "- 异常堆栈: ", e)
+            Log.d("MyRetrofitDatasource", "========== 取消分享API调用结束(异常) ==========")
+            throw e
+        }
     }
 
 }

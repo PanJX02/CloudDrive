@@ -77,6 +77,7 @@ fun FileScreen(
     var showShareContentDialog by remember { mutableStateOf(false) }
     var shareKey by remember { mutableStateOf("") }
     var shareCode by remember { mutableStateOf("") }
+    var isValidatingShare by remember { mutableStateOf(false) }
     
     val currentDirId by viewModel.currentDirId.collectAsState()
     val context = LocalContext.current
@@ -170,25 +171,47 @@ fun FileScreen(
             onShareKeyChange = { shareKey = it },
             onShareCodeChange = { shareCode = it },
             onDismiss = { 
-                showShareContentDialog = false
-                shareKey = ""
-                shareCode = ""
-            },
-            onConfirm = {
-                if (shareKey.isNotBlank()) {
-                    // 处理获取分享内容的逻辑
-                    Log.d("FileScreen", "获取分享内容: shareKey=$shareKey, code=$shareCode")
-                    // 隐藏对话框
+                if (!isValidatingShare) {
                     showShareContentDialog = false
-                    
-                    // 调用导航函数
-                    onNavigateToShareFileList?.invoke(shareKey, shareCode)
-                    
-                    // 清空分享密钥和验证码
                     shareKey = ""
                     shareCode = ""
                 }
-            }
+            },
+            onConfirm = {
+                if (shareKey.isNotBlank() && !isValidatingShare) {
+                    isValidatingShare = true
+                    
+                    Log.d("FileScreen", "验证分享密钥: shareKey=$shareKey, code=$shareCode")
+                    
+                    viewModel.getShareFileList(shareKey, shareCode, null) { success, message, fileList ->
+                        isValidatingShare = false
+                        
+                        if (success && fileList != null) {
+                            showShareContentDialog = false
+                            
+                            onNavigateToShareFileList?.invoke(shareKey, shareCode)
+                            
+                            shareKey = ""
+                            shareCode = ""
+                        } else {
+                            (context as? android.app.Activity)?.runOnUiThread {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "无法获取分享内容: $message",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            
+                            if (message != "无效的分享链接") {
+                                showShareContentDialog = false
+                                shareKey = ""
+                                shareCode = ""
+                            }
+                        }
+                    }
+                }
+            },
+            isLoading = isValidatingShare
         )
     }
 

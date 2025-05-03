@@ -16,9 +16,11 @@ import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
 import com.panjx.clouddrive.core.modle.response.NetworkResponse
+import com.panjx.clouddrive.core.modle.response.ShareListResponse
 import com.panjx.clouddrive.core.modle.response.ShareResponse
 import com.panjx.clouddrive.core.modle.response.UploadResponse
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -153,6 +155,18 @@ interface MyNetworkApiService {
     @POST("share/save")
     suspend fun saveShareFiles(
         @Body request: SaveShareFilesRequest
+    ): NetworkResponse<Unit>
+
+    // 获取当前用户的分享列表
+    @GET("share/list")
+    suspend fun getShareList(
+    ): NetworkResponse<List<ShareListResponse>>
+    
+    // 取消分享
+    @DELETE("share")
+    suspend fun cancelShare(
+        @Query("shareKey") shareKey: String,
+        @Query("code") code: String? = null
     ): NetworkResponse<Unit>
 
 }

@@ -1,14 +1,20 @@
 package com.panjx.clouddrive.feature.fileRoute.component
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -57,7 +63,8 @@ fun ShareContentDialog(
     onShareKeyChange: (String) -> Unit,
     onShareCodeChange: (String) -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    isLoading: Boolean = false
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -71,7 +78,8 @@ fun ShareContentDialog(
                     onValueChange = onShareKeyChange,
                     label = { Text("分享密钥 (必填)") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
@@ -79,20 +87,39 @@ fun ShareContentDialog(
                     onValueChange = onShareCodeChange,
                     label = { Text("验证码 (选填)") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
                 )
+                
+                if (isLoading) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("验证中...")
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                enabled = shareKey.isNotBlank()
+                enabled = shareKey.isNotBlank() && !isLoading
             ) {
                 Text("确认")
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
+            Button(
+                onClick = onDismiss,
+                enabled = !isLoading
+            ) {
                 Text("取消")
             }
         }
