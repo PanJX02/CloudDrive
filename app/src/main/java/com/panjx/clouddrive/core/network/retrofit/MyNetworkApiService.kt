@@ -12,6 +12,7 @@ import com.panjx.clouddrive.core.modle.request.SaveShareFilesRequest
 import com.panjx.clouddrive.core.modle.request.ShareRequest
 import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
+import com.panjx.clouddrive.core.modle.response.Announcement
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
 import com.panjx.clouddrive.core.modle.response.NetworkPageData
@@ -168,5 +169,10 @@ interface MyNetworkApiService {
         @Query("shareKey") shareKey: String,
         @Query("code") code: String? = null
     ): NetworkResponse<Unit>
+
+    // 获取公告
+    @GET("announcements")
+    suspend fun getAnnouncements(
+    ): NetworkResponse<List<Announcement>>
 
 }
