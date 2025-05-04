@@ -145,7 +145,7 @@ interface MyNetworkApiService {
     ): NetworkResponse<Unit>
 
     // 获取收藏文件列表
-    @GET("files/favorite")
+    @GET("files/favorites")
     suspend fun getFavoriteFiles(
     ): NetworkResponse<NetworkPageData<File>>
 

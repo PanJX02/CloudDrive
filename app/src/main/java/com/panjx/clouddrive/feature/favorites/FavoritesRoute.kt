@@ -1,121 +1,303 @@
 package com.panjx.clouddrive.feature.favorites
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.panjx.clouddrive.feature.favorites.component.FavoritesActions
+import com.panjx.clouddrive.feature.favorites.component.FavoritesOperations
+import com.panjx.clouddrive.feature.file.component.FileExplorer
+import com.panjx.clouddrive.feature.fileRoute.component.FileActionBar
+import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
+import com.panjx.clouddrive.feature.transfersRoute.DownloadTransfersViewModel
+import kotlinx.coroutines.launch
 
-data class FavoriteItem(
-    val name: String,
-    val type: String,
-    val favoriteTime: String,
-    val size: String,
-    val location: String
-)
-
+/**
+ * 收藏夹顶部应用栏
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FavoritesRoute(
-    onNavigateBack: () -> Unit
+fun FavoritesTopBar(
+    title: String = "收藏夹",
+    showBackButton: Boolean,
+    onBackClick: () -> Unit,
+    isSelectionMode: Boolean,
+    selectedCount: Int = 0
 ) {
-    val items = remember {
-        listOf(
-            FavoriteItem("重要文档.docx", "文件", "2025-03-20", "2.5MB", "/根目录/文档/工作"),
-            FavoriteItem("家庭照片", "文件夹", "2025-03-25", "1.2GB", "/根目录/图片"),
-            FavoriteItem("会议记录.pdf", "文件", "2024-04-10", "1.8MB", "/根目录/文档/会议"),
-            FavoriteItem("视频资料", "文件夹", "2025-04-18", "21.3MB", "/根目录")
+    TopAppBar(
+        title = { 
+            Text(
+                if (isSelectionMode) "已选择 $selectedCount 项" else title
+            ) 
+        },
+        navigationIcon = {
+            if (showBackButton) {
+                IconButton(onClick = onBackClick) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                }
+            }
+        }
+    )
+}
+
+/**
+ * 收藏夹主路由
+ * 参考FileRoute实现更完整的多选和操作功能
+ */
+@Composable
+fun FavoritesRoute(
+    onNavigateBack: () -> Unit,
+    viewModel: FavoritesViewModel = hiltViewModel(),
+    onNavigateToDirectory: ((dirId: Long, dirName: String?) -> Unit)? = null,
+    onActionsReady: (FavoritesActions) -> Unit = {},
+    onDispose: () -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val currentPath by viewModel.currentPath.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    
+    // 使用与FileRoute类似的mutableStateListOf管理选中文件
+    val selectedFiles = remember { mutableStateListOf<Long>() }
+    val downloadViewModel: DownloadTransfersViewModel = hiltViewModel()
+    val context = LocalContext.current
+    
+    // 添加选择模式状态
+    val isSelectionMode = remember { mutableStateOf(false) }
+    
+    // 文件详情对话框状态管理
+    val showFileDetailDialog = remember { mutableStateOf(false) }
+    val fileDetail = remember { mutableStateOf<com.panjx.clouddrive.core.modle.FileDetail?>(null) }
+    val isLoadingFileDetail = remember { mutableStateOf(false) }
+    val fileDetailErrorMessage = remember { mutableStateOf("") }
+    
+    // 消息显示
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    
+    // 显示消息的帮助函数
+    fun showMessage(message: String) {
+        scope.launch {
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+    
+    // 创建函数来清空选中文件，但不退出选择模式
+    val clearSelection = {
+        if (selectedFiles.isNotEmpty()) {
+            selectedFiles.clear()
+        }
+    }
+    
+    // 创建函数来完全退出选择模式
+    val exitSelectionMode = {
+        isSelectionMode.value = false
+        clearSelection()
+    }
+    
+    // 当有文件被选中时，进入选择模式
+    if (selectedFiles.isNotEmpty() && !isSelectionMode.value) {
+        isSelectionMode.value = true
+    }
+    
+    // 创建收藏夹操作实例
+    val favoritesOperations = remember {
+        FavoritesOperations(
+            viewModel = viewModel,
+            downloadViewModel = downloadViewModel,
+            context = context,
+            exitSelectionMode = exitSelectionMode
         )
+    }
+    
+    // 在这里定义操作实现，访问viewModel和selectedFiles
+    val favoritesActions = remember(selectedFiles.size, isSelectionMode.value) {
+        val hasSelection = selectedFiles.isNotEmpty() || isSelectionMode.value
+        val selectedFileIds = selectedFiles.toList()
+        
+        FavoritesActions(
+            onDownloadClick = { 
+                favoritesOperations.downloadFiles(selectedFileIds)
+            },
+            onMoveClick = {
+                // 应该打开文件夹选择界面
+                favoritesOperations.moveFiles(selectedFileIds)
+            },
+            onCopyClick = {
+                // 应该打开文件夹选择界面
+                favoritesOperations.copyFiles(selectedFileIds)
+            },
+            onFavoriteClick = {
+                favoritesOperations.toggleFavorite(selectedFileIds)
+            },
+            onRenameClick = {
+                // 处理重命名操作
+                if (selectedFileIds.size == 1) {
+                    // 获取文件信息
+                    val fileInfo = favoritesOperations.renameFile(selectedFileIds)
+                    if (fileInfo != null) {
+                        // 此处应显示重命名对话框
+                        showMessage("请输入新的文件名")
+                    }
+                } else {
+                    showMessage("请选择单个文件进行重命名")
+                }
+            },
+            onRemoveFromFavoritesClick = { 
+                favoritesOperations.deleteFiles(selectedFileIds)
+            },
+            onShareClick = {
+                // 分享文件
+                favoritesOperations.shareFiles(selectedFileIds) { fileIds ->
+                    // 这里应该打开分享对话框
+                    showMessage("分享功能准备中")
+                }
+            },
+            onDetailsClick = { 
+                // 处理查看详情操作
+                fileDetailErrorMessage.value = ""
+                fileDetail.value = null
+                isLoadingFileDetail.value = true
+                showFileDetailDialog.value = true
+                
+                // 调用操作查看文件详情
+                favoritesOperations.showFileDetails(selectedFileIds)
+                
+                // 这里还应该添加获取详情的API调用
+                isLoadingFileDetail.value = false
+                showMessage("文件详情功能准备中")
+            },
+            hasSelection = hasSelection,
+            selectedFileIds = selectedFileIds
+        )
+    }
+    
+    // 处理目录导航
+    val handleNavigateToDirectory = { dirId: Long, dirName: String? ->
+        // 在导航前退出选择模式
+        exitSelectionMode()
+        // 导航到新目录
+        viewModel.loadDirectoryContent(dirId, dirName)
+    }
+    
+    // 当操作变化时提供给调用者
+    LaunchedEffect(favoritesActions) {
+        onActionsReady(favoritesActions)
+    }
+    
+    // 当此组件被销毁时通知调用者
+    DisposableEffect(Unit) {
+        onDispose {
+            onDispose()
+        }
+    }
+    
+    // 处理回退按钮
+    BackHandler(enabled = currentPath.size > 1 || isSelectionMode.value) {
+        if (isSelectionMode.value) {
+            exitSelectionMode()
+        } else {
+            viewModel.navigateUp()
+        }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("收藏夹") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+            FavoritesTopBar(
+                showBackButton = true,
+                onBackClick = {
+                    if (isSelectionMode.value) {
+                        exitSelectionMode()
+                    } else if (currentPath.size > 1) {
+                        viewModel.navigateUp()
+                    } else {
+                        onNavigateBack()
                     }
-                }
+                },
+                isSelectionMode = isSelectionMode.value,
+                selectedCount = selectedFiles.size
             )
-        }
-    ) { padding ->
-        if (items.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("收藏夹是空的")
+        },
+        bottomBar = {
+            // 选中文件时显示操作栏
+            if (isSelectionMode.value) {
+                FileActionBar(
+                    // 提供必要的操作回调
+                    onDownloadClick = favoritesActions.onDownloadClick,
+                    onMoveClick = favoritesActions.onMoveClick,
+                    onCopyClick = favoritesActions.onCopyClick,
+                    onFavoriteClick = favoritesActions.onFavoriteClick,
+                    onRenameClick = favoritesActions.onRenameClick,
+                    onDeleteClick = favoritesActions.onRemoveFromFavoritesClick, // 删除按钮用作移出收藏
+                    onShareClick = favoritesActions.onShareClick,
+                    onDetailsClick = favoritesActions.onDetailsClick
+                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp)
-            ) {
-                items(items) { item ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        ListItem(
-                            headlineContent = { Text(item.name) },
-                            supportingContent = {
-                                Column {
-                                    Text("${item.type} · ${item.size} · 收藏于 ${item.favoriteTime}")
-                                    Row(
-                                        modifier = Modifier.padding(top = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Folder,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text(" ${item.location}")
-                                    }
-                                }
-                            },
-                            trailingContent = {
-                                Row {
-                                    IconButton(onClick = { /* 打开文件 */ }) {
-                                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "打开")
-                                    }
-                                    IconButton(onClick = { /* 取消收藏 */ }) {
-                                        Icon(Icons.Default.Star, contentDescription = "取消收藏")
-                                    }
-                                }
-                            }
-                        )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // 使用FileExplorer组件，实现文件浏览和多选
+            FileExplorer(
+                viewModel = viewModel,
+                selectedFiles = selectedFiles,
+                onSelectChange = { fileId, isSelected -> 
+                    // 直接操作selectedFiles列表，而不是调用viewModel
+                    if (isSelected) {
+                        selectedFiles.add(fileId)
+                    } else {
+                        selectedFiles.remove(fileId)
                     }
+                },
+                onNavigateToDirectory = { dirId, dirName ->
+                    // 如果处于选择模式，点击文件夹不应导航
+                    if (!isSelectionMode.value) {
+                        handleNavigateToDirectory(dirId, dirName)
+                    }
+                },
+                hideSelectionIcon = false,
+                isSelectionMode = isSelectionMode.value,
+                modifier = Modifier.fillMaxSize()
+            )
+            
+            // 如果数据为空且不是加载状态，显示空状态提示
+            if (uiState is FileUiState.Success && (uiState as FileUiState.Success).files.isEmpty() && !isRefreshing) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("收藏夹是空的")
                 }
             }
         }
     }
+    
+    // TODO: 添加文件详情对话框的实现
 } 

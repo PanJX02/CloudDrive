@@ -95,7 +95,7 @@ fun FileRoute(
             viewModel = viewModel,
             downloadViewModel = downloadViewModel,
             context = context,
-            clearSelection = clearSelection
+            exitSelectionMode = exitSelectionMode
         )
     }
 

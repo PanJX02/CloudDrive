@@ -1,15 +1,16 @@
-package com.panjx.clouddrive.feature.fileRoute
+package com.panjx.clouddrive.feature.favorites.component
 
 import android.content.Context
 import android.util.Log
+import com.panjx.clouddrive.feature.favorites.FavoritesViewModel
 import com.panjx.clouddrive.feature.transfersRoute.DownloadTransfersViewModel
 
 /**
- * 文件操作实现类
- * 负责处理所有文件相关操作的实际逻辑
+ * 收藏夹操作实现类
+ * 负责处理收藏夹相关操作的实际逻辑
  */
-class FileOperations(
-    private val viewModel: FileViewModel,
+class FavoritesOperations(
+    private val viewModel: FavoritesViewModel,
     private val downloadViewModel: DownloadTransfersViewModel,
     private val context: Context,
     private val exitSelectionMode: () -> Unit // 退出选择模式并清除选中文件
@@ -18,7 +19,7 @@ class FileOperations(
      * 下载选中的文件
      */
     fun downloadFiles(selectedFileIds: List<Long>) {
-        Log.d(TAG, "================== 下载流程开始 ==================")
+        Log.d(TAG, "================== 收藏夹下载流程开始 ==================")
         Log.d(TAG, "用户点击下载按钮，选中文件数量: ${selectedFileIds.size}")
         Log.d(TAG, "选中的文件ID: $selectedFileIds")
         
@@ -39,23 +40,49 @@ class FileOperations(
     }
 
     /**
-     * 移动选中的文件
+     * 从收藏夹中移除文件
+     */
+    fun removeFromFavorites(selectedFileIds: List<Long>) {
+        Log.d(TAG, "移出收藏操作: $selectedFileIds")
+        
+        if (selectedFileIds.isEmpty()) {
+            Log.d(TAG, "无选中文件，取消移出收藏操作")
+            return
+        }
+        
+        Log.d(TAG, "开始从收藏夹移除文件，数量: ${selectedFileIds.size}")
+        
+        // 调用ViewModel执行移出收藏
+        viewModel.removeFromFavorites(selectedFileIds) { success, message ->
+            if (success) {
+                Log.d(TAG, "移出收藏成功: $message")
+            } else {
+                Log.e(TAG, "移出收藏失败: $message")
+            }
+        }
+        
+        // 退出选择模式
+        exitSelectionMode()
+    }
+
+    /**
+     * 移动文件
      */
     fun moveFiles(selectedFileIds: List<Long>) {
         Log.d(TAG, "移动操作: $selectedFileIds")
         // TODO: 实现移动文件逻辑
         exitSelectionMode()
     }
-
+    
     /**
-     * 复制选中的文件
+     * 复制文件
      */
     fun copyFiles(selectedFileIds: List<Long>) {
         Log.d(TAG, "复制操作: $selectedFileIds")
         // TODO: 实现复制文件逻辑
         exitSelectionMode()
     }
-
+    
     /**
      * 添加/移除收藏
      * 根据文件的收藏状态决定是添加收藏还是取消收藏
@@ -87,21 +114,14 @@ class FileOperations(
                 }
             }
         } else {
-            // 如果有文件未收藏，则添加收藏
-            Log.d(TAG, "存在未收藏的文件，执行添加收藏操作")
-            viewModel.addToFavorites(selectedFileIds) { success, message ->
-                if (success) {
-                    Log.d(TAG, "添加收藏成功: $message")
-                } else {
-                    Log.e(TAG, "添加收藏失败: $message")
-                }
-            }
+            // 收藏夹内的文件已经是收藏状态，不需要进行额外操作
+            Log.d(TAG, "文件已在收藏夹中")
         }
         
         // 退出选择模式
         exitSelectionMode()
     }
-
+    
     /**
      * 重命名文件/文件夹
      * @param selectedFileIds 选中的文件ID列表（只能包含单个文件ID）
@@ -126,20 +146,16 @@ class FileOperations(
         if (!newName.isNullOrBlank() && newName != currentFileName) {
             Log.d(TAG, "执行重命名操作: fileId=$fileId, 原名称=$currentFileName, 新名称=$newName")
             
-            viewModel.renameFile(fileId, newName) { success, message ->
-                Log.d(TAG, "重命名文件结果: 成功=$success, 消息=$message")
-                
-                if (success) {
-                    exitSelectionMode() // 重命名成功后退出选择模式
-                }
-                // 错误处理(如显示Toast)应由调用方处理
-            }
+            // TODO: 实现重命名API调用
+            
+            // 重命名成功后退出选择模式
+            exitSelectionMode()
         }
         
         // 返回当前文件ID和文件名，用于构建重命名对话框
         return Pair(fileId, currentFileName)
     }
-
+    
     /**
      * 删除文件/文件夹
      */
@@ -153,20 +169,19 @@ class FileOperations(
         
         Log.d(TAG, "开始删除文件，数量: ${selectedFileIds.size}")
         
-        // 调用ViewModel执行删除
-        viewModel.deleteFiles(selectedFileIds) { success, message ->
+        // 对于收藏夹，删除操作实际上是移出收藏
+        viewModel.removeFromFavorites(selectedFileIds) { success, message ->
             if (success) {
-                Log.d(TAG, "删除文件成功: $message")
+                Log.d(TAG, "从收藏夹移除成功: $message")
             } else {
-                Log.e(TAG, "删除文件失败: $message")
-                // 此处可以添加错误提示逻辑，例如显示Toast或Snackbar
+                Log.e(TAG, "从收藏夹移除失败: $message")
             }
         }
         
         // 退出选择模式
         exitSelectionMode()
     }
-
+    
     /**
      * 分享文件
      */
@@ -185,7 +200,7 @@ class FileOperations(
         
         // 不清空选中，由对话框处理完成后清空
     }
-
+    
     /**
      * 查看文件详情
      */
@@ -205,21 +220,12 @@ class FileOperations(
         
         Log.d(TAG, "开始获取文件详情，fileId: ${selectedFileIds[0]}")
         
-        // 调用ViewModel获取文件详情
-        viewModel.getFileDetails(selectedFileIds) { success, message, fileDetail ->
-            if (success) {
-                Log.d(TAG, "获取文件详情成功: $message")
-                Log.d(TAG, "文件详情: $fileDetail")
-            } else {
-                Log.e(TAG, "获取文件详情失败: $message")
-                // 可以添加错误提示逻辑
-            }
-        }
+        // TODO: 实现获取文件详情API调用
         
         // 不清空选中，让用户可以继续操作
     }
-
+    
     companion object {
-        private const val TAG = "FileOperations"
+        private const val TAG = "FavoritesOperations"
     }
 } 
