@@ -39,7 +39,8 @@ fun ItemFile(
     onSelectChange: (Boolean) -> Unit,
     onFolderClick: ((Long, String) -> Unit)? = null, // 修改参数类型
     hasSelectedItems: Boolean = false, // 指示是否当前有选中的项目
-    isSelectionMode: Boolean = false // 新增参数，指示是否处于选择模式
+    isSelectionMode: Boolean = false, // 指示是否处于选择模式
+    hideSelectionIcon: Boolean = false // 是否隐藏选择图标
 ) {
     Log.d("Composable", "ItemFile")
     
@@ -47,6 +48,7 @@ fun ItemFile(
     val currentIsSelected = rememberUpdatedState(isSelected)
     val currentHasSelectedItems = rememberUpdatedState(hasSelectedItems)
     val currentIsSelectionMode = rememberUpdatedState(isSelectionMode)
+    val currentHideSelectionIcon = rememberUpdatedState(hideSelectionIcon)
     
     Row(
         modifier = Modifier
@@ -54,15 +56,17 @@ fun ItemFile(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = {
-                        // 长按直接选中文件/文件夹
-                        onSelectChange(true)
+                        // 只有当不隐藏选择图标时才响应长按选择
+                        if (!currentHideSelectionIcon.value) {
+                            onSelectChange(true)
+                        }
                     },
                     onTap = {
-                        if (currentIsSelectionMode.value || currentHasSelectedItems.value) {
-                            // 如果当前处于选择模式，点击切换选中状态
+                        if (!currentHideSelectionIcon.value && (currentIsSelectionMode.value || currentHasSelectedItems.value)) {
+                            // 如果不隐藏选择图标且当前处于选择模式，点击切换选中状态
                             onSelectChange(!currentIsSelected.value)
                         } else {
-                            // 如果不在选择模式，则执行正常的点击行为（打开文件夹）
+                            // 如果隐藏选择图标或不在选择模式，则执行正常的点击行为（打开文件夹）
                             if (data.folderType == 1 && onFolderClick != null) {
                                 data.id?.let { data.fileName?.let { it1 -> onFolderClick(it, it1) } }
                             }
@@ -129,28 +133,31 @@ fun ItemFile(
                 }
             }
         }
-        // 动态切换选中图标
-        val icon = if (isSelected) { // 使用参数状态
-            Icons.Filled.RadioButtonChecked
-        } else {
-            Icons.Filled.RadioButtonUnchecked
-        }
-
-        Icon(
-            imageVector = icon,
-            contentDescription = "Select",
-            tint = if (isSelected) {
-                MaterialTheme.colorScheme.primary
+        
+        // 仅在明确要求显示选择图标时才显示
+        if (!hideSelectionIcon) {
+            // 动态切换选中图标
+            val icon = if (isSelected) { // 使用参数状态
+                Icons.Filled.RadioButtonChecked
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            modifier = Modifier
-                .size(15.dp)
-                .clickable {
-                    onSelectChange(!isSelected) // 直接传递新状态
-                }
-        )
+                Icons.Filled.RadioButtonUnchecked
+            }
 
+            Icon(
+                imageVector = icon,
+                contentDescription = "Select",
+                tint = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier
+                    .size(15.dp)
+                    .clickable {
+                        onSelectChange(!isSelected) // 直接传递新状态
+                    }
+            )
+        }
     }
 }
 @Preview(showBackground = true)

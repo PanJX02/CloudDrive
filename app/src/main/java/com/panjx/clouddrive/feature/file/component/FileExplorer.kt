@@ -23,6 +23,8 @@ import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
  * @param onNavigateToDirectory 导航到指定目录的回调
  * @param extraBottomSpace 底部额外空间，用于操作栏或FAB
  * @param isSelectionMode 是否为选择模式
+ * @param hideSelectionIcon 是否隐藏选择图标
+ * @param foldersOnly 是否只显示文件夹
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +35,8 @@ fun FileExplorer(
     onNavigateToDirectory: (dirId: Long, dirName: String?) -> Unit,
     extraBottomSpace: Dp = 0.dp,
     isSelectionMode: Boolean = false,
+    hideSelectionIcon: Boolean = false,
+    foldersOnly: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     // 从ViewModel获取状态
@@ -41,9 +45,16 @@ fun FileExplorer(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     
     // 根据UI状态获取文件列表
-    val files = when (uiState) {
+    val allFiles = when (uiState) {
         is FileUiState.Success -> (uiState as FileUiState.Success).files
         else -> emptyList()
+    }
+    
+    // 如果foldersOnly为true，则过滤出文件夹
+    val files = if (foldersOnly) {
+        allFiles.filter { it.folderType == 1 }
+    } else {
+        allFiles
     }
     
     // 下拉刷新包装
@@ -79,6 +90,7 @@ fun FileExplorer(
                 extraBottomSpace = extraBottomSpace,
                 isRefreshing = isRefreshing,
                 isSelectionMode = isSelectionMode,
+                hideSelectionIcon = hideSelectionIcon,
                 modifier = Modifier.padding(top = 8.dp)
             )
         }

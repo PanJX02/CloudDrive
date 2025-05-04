@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
  * @param onFolderSelected 文件夹选择完成回调，参数为选中的文件夹ID
  * @param excludeFolderIds 需要排除的文件夹ID列表（例如不能选择当前所在文件夹作为目标）
  * @param initialDirectoryId 初始目录ID，默认为根目录(0)
+ * @param hideSelectionIcon 是否隐藏选择图标
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,7 +57,8 @@ fun FolderSelectionScreen(
     onBackClick: () -> Unit,
     onFolderSelected: (Long) -> Unit,
     excludeFolderIds: List<Long> = emptyList(),
-    initialDirectoryId: Long = 0L
+    initialDirectoryId: Long = 0L,
+    hideSelectionIcon: Boolean = true
 ) {
     // 使用ViewModel
     val viewModel: FileViewModel = hiltViewModel()
@@ -203,7 +205,9 @@ fun FolderSelectionScreen(
                 selectedFiles = selectedFiles,
                 onSelectChange = { _, _ -> /* 文件夹选择页面不需要选择文件 */ },
                 onNavigateToDirectory = handleNavigateToDirectory,
-                extraBottomSpace = 0.dp
+                extraBottomSpace = 0.dp,
+                hideSelectionIcon = hideSelectionIcon,
+                foldersOnly = true
             )
         }
     }

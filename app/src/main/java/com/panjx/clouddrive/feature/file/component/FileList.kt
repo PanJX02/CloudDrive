@@ -38,6 +38,7 @@ import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
  * @param isRefreshing 下拉刷新状态
  * @param showEmptyState 是否显示空状态提示
  * @param isSelectionMode 是否为选择模式
+ * @param hideSelectionIcon 是否隐藏选择图标
  */
 @Composable
 fun FileList(
@@ -51,6 +52,7 @@ fun FileList(
     isRefreshing: Boolean = false,
     showEmptyState: Boolean = true,
     isSelectionMode: Boolean = false,
+    hideSelectionIcon: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     // 检查是否正在加载
@@ -119,7 +121,8 @@ fun FileList(
                                 onFolderClick(folderId, folderName)
                             },
                             hasSelectedItems = selectedFiles.isNotEmpty(),
-                            isSelectionMode = isSelectionMode
+                            isSelectionMode = isSelectionMode,
+                            hideSelectionIcon = hideSelectionIcon
                         )
                     }
                     
