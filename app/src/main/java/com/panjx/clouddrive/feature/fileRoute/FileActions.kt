@@ -10,6 +10,6 @@ data class FileActions(
     val onDeleteClick: () -> Unit = {},
     val onShareClick: () -> Unit = {},
     val onDetailsClick: () -> Unit = {},
-    val hasSelection: Boolean = false, // Indicates if there are selected items
+    val hasSelection: Boolean = false, // 表示是否处于选择模式，即使没有选择文件
     val selectedFileIds: List<Long> = emptyList() // 选中的文件ID列表
 ) 

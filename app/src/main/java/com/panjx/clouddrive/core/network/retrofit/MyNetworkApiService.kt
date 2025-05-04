@@ -114,6 +114,12 @@ interface MyNetworkApiService {
         @Body request: UserFileIdsRequest
     ): NetworkResponse<Unit>
 
+    // 放入回收站
+    @POST("files/recycle")
+    suspend fun putInRecycleBin(
+        @Body request: UserFileIdsRequest
+    ): NetworkResponse<Unit>
+
     // 文件详情
     @POST("files/detail")
     suspend fun getFileDetails(
@@ -137,6 +143,11 @@ interface MyNetworkApiService {
     suspend fun unFavorites(
         @Body request: UserFileIdsRequest
     ): NetworkResponse<Unit>
+
+    // 获取收藏文件列表
+    @GET("files/favorite")
+    suspend fun getFavoriteFiles(
+    ): NetworkResponse<NetworkPageData<File>>
 
     // 分享文件
     @POST("share")
@@ -175,4 +186,25 @@ interface MyNetworkApiService {
     suspend fun getAnnouncements(
     ): NetworkResponse<List<Announcement>>
 
+    // 回收站文件列表
+    @GET("recycle-bin")
+    suspend fun getRecycleBinFiles(
+    ): NetworkResponse<NetworkPageData<File>>
+
+    // 恢复文件
+    @POST("recycle-bin/restore")
+    suspend fun restoreFiles(
+        @Body request: UserFileIdsRequest
+    ): NetworkResponse<Unit>
+
+    // 彻底删除文件
+    @POST("recycle-bin/delete")
+    suspend fun deleteFilesFromRecycleBin(
+        @Body request: UserFileIdsRequest
+    ): NetworkResponse<Unit>
+
+    // 清空回收站
+    @POST("recycle-bin/clear")
+    suspend fun clearRecycleBin(
+    ): NetworkResponse<Unit>
 }

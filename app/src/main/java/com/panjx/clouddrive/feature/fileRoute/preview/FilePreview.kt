@@ -26,6 +26,8 @@ fun FileScreenPreview() {
             onSelectChange = { _, _ -> },
             onNavigateToDirectory = { _, _ -> },
             clearSelection = {},
+            exitSelectionMode = {},
+            isSelectionMode = false,
             extraBottomSpace = 90.dp
         )
     }

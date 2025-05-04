@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panjx.clouddrive.feature.file.component.FileExplorer
@@ -77,6 +78,9 @@ fun FolderSelectionScreen(
     // Snackbar状态
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    
+    // 防止重复点击的状态变量
+    var isProcessing by remember { mutableStateOf(false) }
     
     // 初始化加载指定目录
     LaunchedEffect(initialDirectoryId) {
@@ -175,7 +179,13 @@ fun FolderSelectionScreen(
         floatingActionButton = {
             if (canSelectCurrentFolder) {
                 FloatingActionButton(
-                    onClick = { onFolderSelected(currentDirId) }
+                    onClick = { 
+                        if (!isProcessing) {
+                            isProcessing = true
+                            onFolderSelected(currentDirId)
+                        }
+                    },
+                    modifier = Modifier.alpha(if (isProcessing) 0.6f else 1f)
                 ) {
                     Icon(Icons.Default.Check, contentDescription = "选择当前文件夹")
                 }

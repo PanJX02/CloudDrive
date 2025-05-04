@@ -152,7 +152,7 @@ class FileOperationViewModel(application: Application) : AndroidViewModel(applic
                 Log.d("FileOperationViewModel", "开始删除文件: ${fileIds.joinToString()}")
                 
                 // 调用API执行删除
-                val response = networkDataSource.deleteFiles(fileIds)
+                val response = networkDataSource.putInRecycleBin(fileIds)
                 if (response.code == 1) {
                     _operationState.value = FileOperationState.Success("删除成功")
                     onComplete(true, "文件删除成功")

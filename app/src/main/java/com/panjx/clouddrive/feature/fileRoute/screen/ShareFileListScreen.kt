@@ -7,12 +7,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.SaveAlt
@@ -186,36 +190,6 @@ fun ShareFileListScreen(
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
-                },
-                actions = {
-                    // 添加转存按钮
-                    if (selectedFiles.isNotEmpty()) {
-                        // 显示选中文件数量
-                        Text(
-                            text = "已选择${selectedFiles.size}项",
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        
-                        IconButton(
-                            onClick = {
-                                // 确保在导航前将选中的文件ID保存到共享状态
-                                ShareFileState.updateFiles(selectedFiles.toList())
-                                
-                                // 如果没有选中文件，提示用户
-                                if (selectedFiles.isEmpty()) {
-                                    Toast.makeText(context, "请先选择要转存的文件", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    // 导航到文件夹选择页面
-                                    navController?.navigateToShareSaveFolderSelection(
-                                        shareKey = shareKey,
-                                        shareCode = shareCode
-                                    )
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.SaveAlt, contentDescription = "转存")
-                        }
-                    }
                 }
             )
         }
@@ -325,15 +299,23 @@ fun ShareFileListScreen(
                         .onGloballyPositioned { coordinates ->
                             actionBarHeightPx = coordinates.size.height
                         },
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.surface,
+                    tonalElevation = 3.dp,
+                    shadowElevation = 4.dp
                 ) {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
+                        Text(
+                            text = "已选择${selectedFiles.size}项",
+                            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+                        )
+                        
+                        androidx.compose.material3.Button(
                             onClick = {
                                 // 确保在导航前将选中的文件ID保存到共享状态
                                 ShareFileState.updateFiles(selectedFiles.toList())
@@ -349,19 +331,18 @@ fun ShareFileListScreen(
                                     )
                                 }
                             },
-                            modifier = Modifier.size(48.dp)
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                            )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.SaveAlt,
                                 contentDescription = "转存",
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(18.dp)
                             )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("转存到我的网盘")
                         }
-                        Text(
-                            text = "转存",
-                            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
                     }
                 }
             }

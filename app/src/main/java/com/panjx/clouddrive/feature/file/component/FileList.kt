@@ -36,6 +36,8 @@ import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
  * @param onRetry 重试加载回调
  * @param extraBottomSpace 底部额外空间，用于FAB或操作栏
  * @param isRefreshing 下拉刷新状态
+ * @param showEmptyState 是否显示空状态提示
+ * @param isSelectionMode 是否为选择模式
  */
 @Composable
 fun FileList(
@@ -47,6 +49,8 @@ fun FileList(
     onRetry: () -> Unit,
     extraBottomSpace: Dp = 0.dp,
     isRefreshing: Boolean = false,
+    showEmptyState: Boolean = true,
+    isSelectionMode: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     // 检查是否正在加载
@@ -76,8 +80,8 @@ fun FileList(
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
             ) {
-                if (files.isEmpty() && !isLoading && !isListLoading) {
-                    // 空文件夹提示
+                if (files.isEmpty() && !isLoading && !isListLoading && showEmptyState) {
+                    // 空文件夹提示，只有当showEmptyState为true时才显示
                     item { 
                         Box(modifier = Modifier.fillMaxWidth().padding(top = 100.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -113,7 +117,9 @@ fun FileList(
                             },
                             onFolderClick = { folderId, folderName ->
                                 onFolderClick(folderId, folderName)
-                            }
+                            },
+                            hasSelectedItems = selectedFiles.isNotEmpty(),
+                            isSelectionMode = isSelectionMode
                         )
                     }
                     

@@ -44,6 +44,8 @@ fun FileScreen(
     onSelectChange: (fileId: Long, isSelected: Boolean) -> Unit,
     onNavigateToDirectory: (dirId: Long, dirName: String?) -> Unit,
     clearSelection: () -> Unit,
+    exitSelectionMode: () -> Unit,
+    isSelectionMode: Boolean,
     extraBottomSpace: Dp = 0.dp,
     toSearch: () -> Unit = {},
     onNavigateToShareFileList: ((shareKey: String, shareCode: String) -> Unit)? = null,
@@ -90,9 +92,9 @@ fun FileScreen(
     )
 
     // 返回处理
-    BackHandler(enabled = currentPath.size > 1 || selectedFiles.isNotEmpty()) {
-        if (selectedFiles.isNotEmpty()) {
-            clearSelection()
+    BackHandler(enabled = currentPath.size > 1 || isSelectionMode) {
+        if (isSelectionMode) {
+            exitSelectionMode()
         } else {
             viewModel.navigateUp()
         }
@@ -229,21 +231,46 @@ fun FileScreen(
     // 主界面脚手架
     Scaffold(
         topBar = {
-            FileTopBar(
-                toSearch = toSearch,
-                showBackIcon = currentPath.size > 1,
-                onNavigateUp = { 
-                    if (selectedFiles.isNotEmpty()) {
-                        clearSelection()
-                    } else {
+            // 根据是否处于选择模式来决定显示哪种顶部栏
+            if (isSelectionMode) {
+                // 计算是否已全选：判断当前显示的所有文件是否都已被选中
+                val allFileIds = files.mapNotNull { it.id }
+                val isAllSelected = allFileIds.isNotEmpty() && 
+                                   allFileIds.all { selectedFiles.contains(it) }
+                
+                // 选择模式下显示选择顶部栏
+                FileSelectionTopBar(
+                    selectedCount = selectedFiles.size,
+                    onClearSelection = exitSelectionMode,
+                    isAllSelected = isAllSelected,
+                    onSelectAllClick = {
+                        if (isAllSelected) {
+                            // 如果已全选，执行取消全选操作
+                            clearSelection() // 这里只清除选择，不退出选择模式
+                        } else {
+                            // 如果未全选，执行全选操作
+                            allFileIds.forEach { fileId ->
+                                if (!selectedFiles.contains(fileId)) {
+                                    onSelectChange(fileId, true)
+                                }
+                            }
+                        }
+                    }
+                )
+            } else {
+                // 非选择模式下显示普通顶部栏
+                FileTopBar(
+                    toSearch = toSearch,
+                    showBackIcon = currentPath.size > 1,
+                    onNavigateUp = { 
                         viewModel.navigateUp() 
                     }
-                }
-            )
+                )
+            }
         },
         floatingActionButton = {
             val offsetX by animateFloatAsState(
-                targetValue = if (selectedFiles.isEmpty()) 0f else 110f,
+                targetValue = if (isSelectionMode) 110f else 0f,
                 animationSpec = tween(300),
                 label = "fabOffset"
             )
@@ -269,6 +296,7 @@ fun FileScreen(
             onSelectChange = onSelectChange,
             onNavigateToDirectory = onNavigateToDirectory,
             extraBottomSpace = extraBottomSpace,
+            isSelectionMode = isSelectionMode,
             modifier = Modifier.padding(innerPadding)
         )
     }

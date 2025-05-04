@@ -22,6 +22,7 @@ import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
  * @param onSelectChange 文件选中状态变更回调
  * @param onNavigateToDirectory 导航到指定目录的回调
  * @param extraBottomSpace 底部额外空间，用于操作栏或FAB
+ * @param isSelectionMode 是否为选择模式
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +32,7 @@ fun FileExplorer(
     onSelectChange: (fileId: Long, isSelected: Boolean) -> Unit,
     onNavigateToDirectory: (dirId: Long, dirName: String?) -> Unit,
     extraBottomSpace: Dp = 0.dp,
+    isSelectionMode: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     // 从ViewModel获取状态
@@ -76,6 +78,7 @@ fun FileExplorer(
                 onRetry = { viewModel.loadData() },
                 extraBottomSpace = extraBottomSpace,
                 isRefreshing = isRefreshing,
+                isSelectionMode = isSelectionMode,
                 modifier = Modifier.padding(top = 8.dp)
             )
         }

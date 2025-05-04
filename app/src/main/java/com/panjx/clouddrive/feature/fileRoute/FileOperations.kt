@@ -12,7 +12,7 @@ class FileOperations(
     private val viewModel: FileViewModel,
     private val downloadViewModel: DownloadTransfersViewModel,
     private val context: Context,
-    private val clearSelection: () -> Unit
+    private val clearSelection: () -> Unit // 只清除选中文件，但不退出选择模式
 ) {
     /**
      * 下载选中的文件
@@ -33,7 +33,7 @@ class FileOperations(
         Log.d(TAG, "调用DownloadTransfersViewModel.addDownloadTasks开始下载...")
         downloadViewModel.addDownloadTasks(filesToDownload, context)
         
-        // 清空选中
+        // 清空选中但不退出选择模式
         clearSelection()
         Log.d(TAG, "已清空选中状态")
     }

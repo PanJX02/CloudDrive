@@ -42,6 +42,9 @@ fun FileRoute(
     val downloadViewModel: DownloadTransfersViewModel = hiltViewModel()
     val context = LocalContext.current
     
+    // 添加选择模式状态
+    val isSelectionMode = remember { mutableStateOf(false) }
+    
     // 重命名对话框状态管理
     var showRenameDialog = remember { mutableStateOf(false) }
     var fileToRename = remember { mutableStateOf<Pair<Long, String>?>(null) }
@@ -59,11 +62,22 @@ fun FileRoute(
     var showShareResultDialog = remember { mutableStateOf(false) }
     var shareResponse = remember { mutableStateOf<com.panjx.clouddrive.core.modle.response.ShareResponse?>(null) }
 
-    // 创建函数来清空选中文件
+    // 创建函数来清空选中文件，但不退出选择模式
     val clearSelection = {
         if (selectedFiles.isNotEmpty()) {
             selectedFiles.clear()
         }
+    }
+    
+    // 创建函数来完全退出选择模式
+    val exitSelectionMode = {
+        isSelectionMode.value = false
+        clearSelection()
+    }
+    
+    // 当有文件被选中时，进入选择模式
+    if (selectedFiles.isNotEmpty() && !isSelectionMode.value) {
+        isSelectionMode.value = true
     }
     
     // 复制到剪贴板的函数
@@ -86,8 +100,8 @@ fun FileRoute(
     }
 
     // 在这里定义操作实现，访问viewModel和selectedFiles
-    val fileActions = remember(selectedFiles.size) { // 当选择改变时重新创建操作
-        val hasSelection = selectedFiles.isNotEmpty()
+    val fileActions = remember(selectedFiles.size, isSelectionMode.value) { // 当选择改变或选择模式改变时重新创建操作
+        val hasSelection = selectedFiles.isNotEmpty() || isSelectionMode.value // 修改判断逻辑
         val selectedFileIds = selectedFiles.toList()
         
         FileActions(
@@ -144,8 +158,8 @@ fun FileRoute(
 
     // 处理目录导航
     val handleNavigateToDirectory = { dirId: Long, dirName: String? ->
-        // 在导航前清空已选文件
-        clearSelection()
+        // 在导航前退出选择模式
+        exitSelectionMode()
         // 导航到新目录
         viewModel.loadDirectoryContent(dirId, dirName)
     }
@@ -178,6 +192,8 @@ fun FileRoute(
         },
         onNavigateToDirectory = handleNavigateToDirectory, // 传递导航处理函数
         clearSelection = clearSelection, // 传递清空选择函数
+        exitSelectionMode = exitSelectionMode, // 传递退出选择模式函数
+        isSelectionMode = isSelectionMode.value, // 传递选择模式状态
         extraBottomSpace = extraBottomSpace, // 传递额外底部空间
         // 传递导航到分享文件列表的函数
         onNavigateToShareFileList = onNavigateToShareFileList,

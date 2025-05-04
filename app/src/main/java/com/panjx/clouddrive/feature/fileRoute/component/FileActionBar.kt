@@ -31,6 +31,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+// 定义文件操作UI组件共用的背景色
+internal val fileOperationBackgroundColor @Composable get() = MaterialTheme.colorScheme.surfaceVariant
+
 /**
  * 文件选中后显示的操作栏 (两行)
  */
@@ -51,7 +54,7 @@ fun FileActionBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(fileOperationBackgroundColor)
             .padding(vertical = 8.dp)
     ) {
         // First Row
@@ -99,6 +102,8 @@ private fun ActionItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+    
     Column(
         modifier = modifier
             .clickable(onClick = onClick)
@@ -109,14 +114,16 @@ private fun ActionItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(24.dp),
+            tint = contentColor
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
             fontSize = 12.sp,
             textAlign = TextAlign.Center,
-            maxLines = 1
+            maxLines = 1,
+            color = contentColor
         )
     }
 } 

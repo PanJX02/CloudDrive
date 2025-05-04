@@ -2,6 +2,7 @@ package com.panjx.clouddrive.feature.file.component
 
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,8 +18,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.panjx.clouddrive.core.design.theme.SpaceSmall
@@ -34,17 +37,38 @@ fun ItemFile(
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     onSelectChange: (Boolean) -> Unit,
-    onFolderClick: ((Long, String) -> Unit)? = null // 修改参数类型
+    onFolderClick: ((Long, String) -> Unit)? = null, // 修改参数类型
+    hasSelectedItems: Boolean = false, // 指示是否当前有选中的项目
+    isSelectionMode: Boolean = false // 新增参数，指示是否处于选择模式
 ) {
     Log.d("Composable", "ItemFile")
+    
+    // 使用rememberUpdatedState包装外部状态，确保在手势处理中能获取最新值
+    val currentIsSelected = rememberUpdatedState(isSelected)
+    val currentHasSelectedItems = rememberUpdatedState(hasSelectedItems)
+    val currentIsSelectionMode = rememberUpdatedState(isSelectionMode)
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                // 如果是文件夹且提供了点击回调，则触发回调
-                if (data.folderType == 1 && onFolderClick != null) {
-                    data.id?.let { data.fileName?.let { it1 -> onFolderClick(it, it1) } }
-                }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = {
+                        // 长按直接选中文件/文件夹
+                        onSelectChange(true)
+                    },
+                    onTap = {
+                        if (currentIsSelectionMode.value || currentHasSelectedItems.value) {
+                            // 如果当前处于选择模式，点击切换选中状态
+                            onSelectChange(!currentIsSelected.value)
+                        } else {
+                            // 如果不在选择模式，则执行正常的点击行为（打开文件夹）
+                            if (data.folderType == 1 && onFolderClick != null) {
+                                data.id?.let { data.fileName?.let { it1 -> onFolderClick(it, it1) } }
+                            }
+                        }
+                    }
+                )
             }
             .padding(horizontal = 15.dp)
             .padding(vertical = 8.dp),

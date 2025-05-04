@@ -83,12 +83,6 @@ class MyRetrofitDatasource @Inject constructor(
         return getService().fileDetails(id)
     }
 
-    suspend fun login(
-        email: String, password: String
-    ): NetworkResponse<LoginData> {
-        Log.d("MyRetrofitDatasource", "登录: email=$email")
-        return getService().login(User(email, password))
-    }
     
     suspend fun register(
         username: String, password: String
@@ -102,11 +96,6 @@ class MyRetrofitDatasource @Inject constructor(
         val refreshToken = runBlocking { userPreferences.refreshToken.first() }
         Log.d("MyRetrofitDatasource", "刷新token（使用基础客户端）")
         return getService().refreshToken(RefreshTokenRequest(refreshToken))
-    }
-    
-    suspend fun sendEmailVerifyCode(email: String): NetworkResponse<Nothing> {
-        Log.d("MyRetrofitDatasource", "发送验证码: email=$email")
-        return getService().sendEmailVerifyCode(email)
     }
 
     suspend fun uploadFile(file: File): NetworkResponse<UploadResponse> {
@@ -162,9 +151,9 @@ class MyRetrofitDatasource @Inject constructor(
     }
     
     // 删除文件
-    suspend fun deleteFiles(fileIds: List<Long>): NetworkResponse<Unit> {
+    suspend fun putInRecycleBin(fileIds: List<Long>): NetworkResponse<Unit> {
         Log.d("MyRetrofitDatasource", "删除文件: fileIds=$fileIds")
-        return getService().deleteFiles(UserFileIdsRequest(fileIds))
+        return getService().putInRecycleBin(UserFileIdsRequest(fileIds))
     }
 
     // 重命名文件
@@ -240,6 +229,12 @@ class MyRetrofitDatasource @Inject constructor(
         }
     }
 
+    // 获取收藏文件列表
+    suspend fun getFavoriteFiles(): NetworkResponse<NetworkPageData<File>> {
+        Log.d("MyRetrofitDatasource", "获取收藏文件列表")
+        return getService().getFavoriteFiles()
+    }
+
     // 获取公告
     suspend fun getAnnouncement(): NetworkResponse<List<Announcement>> {
         Log.d("MyRetrofitDatasource", "获取公告")
@@ -253,6 +248,30 @@ class MyRetrofitDatasource @Inject constructor(
             Log.e("MyRetrofitDatasource", "获取公告异常: ${e.message}")
             throw e
         }
+    }
+
+    // 回收站文件列表
+    suspend fun getRecycleBinFiles(): NetworkResponse<NetworkPageData<File>> {
+        Log.d("MyRetrofitDatasource", "获取回收站文件列表")
+        return getService().getRecycleBinFiles()
+    }
+
+    // 恢复文件
+    suspend fun restoreFiles(fileIds: List<Long>): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "恢复文件: fileIds=$fileIds")
+        return getService().restoreFiles(UserFileIdsRequest(fileIds))
+    }
+
+    // 彻底删除文件
+    suspend fun deleteFilesFromRecycleBin(fileIds: List<Long>): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "彻底删除文件: fileIds=$fileIds")
+        return getService().deleteFilesFromRecycleBin(UserFileIdsRequest(fileIds))
+    }
+
+    // 清空回收站
+    suspend fun emptyRecycleBin(): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "清空回收站")
+        return getService().clearRecycleBin()
     }
 
 }
