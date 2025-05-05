@@ -20,7 +20,9 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -122,7 +124,19 @@ fun MainScreen(
     
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = { 
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    snackbar = { snackbarData ->
+                        Snackbar(
+                            snackbarData = snackbarData,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            actionColor = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                ) 
+            },
             bottomBar = {
                 // 始终显示标准底部栏（如果shouldShowBottomBar为true）
                 if (shouldShowBottomBar) {

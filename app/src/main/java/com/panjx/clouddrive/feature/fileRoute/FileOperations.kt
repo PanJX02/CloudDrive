@@ -12,7 +12,8 @@ class FileOperations(
     private val viewModel: FileViewModel,
     private val downloadViewModel: DownloadTransfersViewModel,
     private val context: Context,
-    private val exitSelectionMode: () -> Unit // 退出选择模式并清除选中文件
+    private val exitSelectionMode: () -> Unit, // 退出选择模式并清除选中文件
+    private val showMessage: (String) -> Unit = {} // 显示消息的函数
 ) {
     /**
      * 下载选中的文件
@@ -132,7 +133,7 @@ class FileOperations(
                 if (success) {
                     exitSelectionMode() // 重命名成功后退出选择模式
                 }
-                // 错误处理(如显示Toast)应由调用方处理
+                // 消息提示已移到FileScreen中处理
             }
         }
         

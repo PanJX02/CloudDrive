@@ -10,7 +10,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -32,6 +34,10 @@ import com.panjx.clouddrive.feature.favorites.component.FavoritesActions
 import com.panjx.clouddrive.feature.favorites.component.FavoritesOperations
 import com.panjx.clouddrive.feature.file.component.FileExplorer
 import com.panjx.clouddrive.feature.fileRoute.component.FileActionBar
+import com.panjx.clouddrive.feature.fileRoute.component.FileDetailDialog
+import com.panjx.clouddrive.feature.fileRoute.component.RenameDialog
+import com.panjx.clouddrive.feature.fileRoute.component.ShareOptionsDialog
+import com.panjx.clouddrive.feature.fileRoute.component.ShareResultDialog
 import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
 import com.panjx.clouddrive.feature.transfersRoute.DownloadTransfersViewModel
 import kotlinx.coroutines.launch
@@ -88,11 +94,22 @@ fun FavoritesRoute(
     // 添加选择模式状态
     val isSelectionMode = remember { mutableStateOf(false) }
     
+    // 重命名对话框状态管理
+    val showRenameDialog = remember { mutableStateOf(false) }
+    val fileToRename = remember { mutableStateOf<Pair<Long, String>?>(null) }
+    val newFileName = remember { mutableStateOf("") }
+    
     // 文件详情对话框状态管理
     val showFileDetailDialog = remember { mutableStateOf(false) }
     val fileDetail = remember { mutableStateOf<com.panjx.clouddrive.core.modle.FileDetail?>(null) }
     val isLoadingFileDetail = remember { mutableStateOf(false) }
     val fileDetailErrorMessage = remember { mutableStateOf("") }
+    
+    // 分享对话框状态管理
+    val showShareOptionsDialog = remember { mutableStateOf(false) }
+    val filesToShare = remember { mutableStateOf<List<Long>>(emptyList()) }
+    val showShareResultDialog = remember { mutableStateOf(false) }
+    val shareResponse = remember { mutableStateOf<com.panjx.clouddrive.core.modle.response.ShareResponse?>(null) }
     
     // 消息显示
     val snackbarHostState = remember { SnackbarHostState() }
@@ -123,6 +140,15 @@ fun FavoritesRoute(
         isSelectionMode.value = true
     }
     
+    // 复制到剪贴板的函数
+    val copyToClipboard = { text: String, isWithCode: Boolean ->
+        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        val clip = android.content.ClipData.newPlainText("分享链接", text)
+        clipboard.setPrimaryClip(clip)
+        val message = if (isWithCode) "已复制自带提取码的链接到剪贴板" else "已复制链接和提取码到剪贴板"
+        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+    }
+    
     // 创建收藏夹操作实例
     val favoritesOperations = remember {
         FavoritesOperations(
@@ -143,12 +169,12 @@ fun FavoritesRoute(
                 favoritesOperations.downloadFiles(selectedFileIds)
             },
             onMoveClick = {
-                // 应该打开文件夹选择界面
-                favoritesOperations.moveFiles(selectedFileIds)
+                // 显示Snackbar提示暂不支持移动操作
+                showMessage("暂不支持在收藏夹中移动文件")
             },
             onCopyClick = {
-                // 应该打开文件夹选择界面
-                favoritesOperations.copyFiles(selectedFileIds)
+                // 显示Snackbar提示暂不支持复制操作
+                showMessage("暂不支持在收藏夹中复制文件")
             },
             onFavoriteClick = {
                 favoritesOperations.toggleFavorite(selectedFileIds)
@@ -159,21 +185,25 @@ fun FavoritesRoute(
                     // 获取文件信息
                     val fileInfo = favoritesOperations.renameFile(selectedFileIds)
                     if (fileInfo != null) {
-                        // 此处应显示重命名对话框
-                        showMessage("请输入新的文件名")
+                        val (fileId, currentName) = fileInfo
+                        // 设置重命名对话框状态
+                        fileToRename.value = Pair(fileId, currentName)
+                        newFileName.value = currentName
+                        showRenameDialog.value = true
                     }
                 } else {
                     showMessage("请选择单个文件进行重命名")
                 }
             },
-            onRemoveFromFavoritesClick = { 
-                favoritesOperations.deleteFiles(selectedFileIds)
+            onRemoveFromFavoritesClick = {
+                // 只执行从收藏夹移除操作，不执行删除操作
+                favoritesOperations.removeFromFavorites(selectedFileIds)
             },
             onShareClick = {
-                // 分享文件
+                // 显示分享对话框
                 favoritesOperations.shareFiles(selectedFileIds) { fileIds ->
-                    // 这里应该打开分享对话框
-                    showMessage("分享功能准备中")
+                    filesToShare.value = fileIds
+                    showShareOptionsDialog.value = true
                 }
             },
             onDetailsClick = { 
@@ -183,12 +213,18 @@ fun FavoritesRoute(
                 isLoadingFileDetail.value = true
                 showFileDetailDialog.value = true
                 
-                // 调用操作查看文件详情
+                // 调用favoritesOperations.showFileDetails并获取详情
                 favoritesOperations.showFileDetails(selectedFileIds)
                 
-                // 这里还应该添加获取详情的API调用
-                isLoadingFileDetail.value = false
-                showMessage("文件详情功能准备中")
+                // 获取详情
+                viewModel.getFileDetails(selectedFileIds) { success, message, detail ->
+                    isLoadingFileDetail.value = false
+                    if (success && detail != null) {
+                        fileDetail.value = detail
+                    } else {
+                        fileDetailErrorMessage.value = message
+                    }
+                }
             },
             hasSelection = hasSelection,
             selectedFileIds = selectedFileIds
@@ -257,7 +293,19 @@ fun FavoritesRoute(
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { 
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = { snackbarData ->
+                    Snackbar(
+                        snackbarData = snackbarData,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        actionColor = MaterialTheme.colorScheme.primary
+                    )
+                }
+            ) 
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -299,5 +347,83 @@ fun FavoritesRoute(
         }
     }
     
-    // TODO: 添加文件详情对话框的实现
+    // 重命名对话框
+    if (showRenameDialog.value && fileToRename.value != null) {
+        RenameDialog(
+            fileName = newFileName.value,
+            onFileNameChange = { newFileName.value = it },
+            onDismiss = { 
+                showRenameDialog.value = false 
+                fileToRename.value = null
+                newFileName.value = ""
+            },
+            onConfirm = {
+                val (fileId, _) = fileToRename.value!!
+                // 执行重命名操作
+                viewModel.renameFile(fileId, newFileName.value) { success, message ->
+                    if (success) {
+                        showMessage("重命名成功")
+                        clearSelection()
+                        exitSelectionMode()
+                    } else {
+                        showMessage("重命名失败: $message")
+                    }
+                }
+                // 直接关闭对话框，不等待回调
+                showRenameDialog.value = false
+                fileToRename.value = null
+                newFileName.value = ""
+            }
+        )
+    }
+    
+    // 文件详情对话框
+    if (showFileDetailDialog.value) {
+        FileDetailDialog(
+            fileDetail = fileDetail.value,
+            isLoading = isLoadingFileDetail.value,
+            errorMessage = fileDetailErrorMessage.value,
+            onDismiss = { showFileDetailDialog.value = false }
+        )
+    }
+    
+    // 分享选项对话框
+    if (showShareOptionsDialog.value) {
+        ShareOptionsDialog(
+            onDismiss = { 
+                showShareOptionsDialog.value = false
+                clearSelection()
+            },
+            onConfirm = { validType ->
+                showShareOptionsDialog.value = false
+                
+                // 调用API进行分享
+                viewModel.shareFile(filesToShare.value, validType) { success, message, response ->
+                    if (success && response != null) {
+                        // 显示分享结果对话框
+                        shareResponse.value = response
+                        showShareResultDialog.value = true
+                    } else {
+                        // 显示错误提示
+                        showMessage(message)
+                        clearSelection()
+                    }
+                }
+            }
+        )
+    }
+    
+    // 分享结果对话框
+    if (showShareResultDialog.value && shareResponse.value != null) {
+        ShareResultDialog(
+            shareResponse = shareResponse.value!!,
+            onDismiss = { 
+                showShareResultDialog.value = false
+                clearSelection()
+            },
+            onCopy = { text, isWithCode ->
+                copyToClipboard(text, isWithCode)
+            }
+        )
+    }
 } 

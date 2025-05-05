@@ -13,6 +13,10 @@ import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,6 +33,9 @@ import com.panjx.clouddrive.feature.file.component.FileExplorer
 import com.panjx.clouddrive.feature.fileRoute.FileViewModel
 import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
 import com.panjx.clouddrive.feature.transfersRoute.TransfersViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * 文件浏览界面主组件
@@ -62,7 +69,11 @@ fun FileScreen(
     onShowFileDetailDialogChange: (Boolean) -> Unit = {},
     fileDetail: com.panjx.clouddrive.core.modle.FileDetail? = null,
     isLoadingFileDetail: Boolean = false,
-    fileDetailErrorMessage: String = ""
+    fileDetailErrorMessage: String = "",
+    // Snackbar状态
+    snackbarHostState: SnackbarHostState,
+    // 自定义Snackbar
+    customSnackbar: @Composable (SnackbarData) -> Unit = { Snackbar(it) }
 ) {
     // 确定文件列表和加载状态
     val (files, isListLoading) = when (uiState) {
@@ -136,18 +147,28 @@ fun FileScreen(
                 onNewFileNameChange("")
             },
             onConfirm = {
-                fileToRename.let { (fileId, _) ->
-                    if (newFileName.isNotBlank()) {
-                        viewModel.renameFile(fileId, newFileName) { success, message ->
+                val fileName = newFileName.trim()
+                if (fileName.isNotBlank()) {
+                    val (fileId, oldName) = fileToRename
+                    if (fileName != oldName) {  // 只有当名称发生变化时才执行重命名
+                        viewModel.renameFile(fileId, fileName) { success, message ->
                             if (success) {
-                                Log.d("FileScreen", "文件重命名成功: $message")
+                                // 使用Snackbar显示成功消息
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    snackbarHostState.showSnackbar("重命名成功")
+                                }
                                 clearSelection()
+                                exitSelectionMode()
                             } else {
-                                Log.e("FileScreen", "文件重命名失败: $message")
+                                // 使用Snackbar显示错误消息
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    snackbarHostState.showSnackbar("重命名失败: $message")
+                                }
                             }
                         }
                     }
                 }
+                // 直接关闭对话框，不等待回调
                 onShowRenameDialogChange(false)
                 onFileToRenameChange(null)
                 onNewFileNameChange("")
@@ -287,7 +308,13 @@ fun FileScreen(
                 )
             }
         },
-        floatingActionButtonPosition = FabPosition.End
+        floatingActionButtonPosition = FabPosition.End,
+        snackbarHost = { 
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = customSnackbar
+            )
+        }
     ) { innerPadding ->
         // 文件浏览器
         FileExplorer(

@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.panjx.clouddrive.core.modle.File
+import com.panjx.clouddrive.core.modle.FileDetail
+import com.panjx.clouddrive.core.modle.response.ShareResponse
 import com.panjx.clouddrive.core.network.datasource.MyRetrofitDatasource
 import com.panjx.clouddrive.data.UserPreferences
 import com.panjx.clouddrive.feature.fileRoute.viewmodel.FileUiState
@@ -254,6 +256,94 @@ class FavoritesViewModel @Inject constructor(
      */
     fun getSelectedFileObjects(): List<File> {
         return getSelectedFiles(_selectedFiles.value)
+    }
+    
+    /**
+     * 分享文件
+     * @param fileIds 要分享的文件ID列表
+     * @param validType 分享有效期类型（1-永久有效，2-7天，3-1天）
+     * @param onComplete 完成回调
+     */
+    fun shareFile(fileIds: List<Long>, validType: Int, onComplete: (Boolean, String, ShareResponse?) -> Unit) {
+        Log.d(TAG, "开始分享文件: $fileIds, 有效期类型: $validType")
+        
+        if (fileIds.isEmpty()) {
+            Log.e(TAG, "文件ID列表为空")
+            onComplete(false, "未选择文件", null)
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                // 直接传入文件ID列表
+                val response = dataSource.shareFile(fileIds, validType)
+                if (response.code == 1 && response.data != null) {
+                    Log.d(TAG, "分享文件成功: ${response.data}")
+                    onComplete(true, "分享成功", response.data)
+                } else {
+                    Log.e(TAG, "分享文件失败: ${response.message}")
+                    onComplete(false, response.message ?: "分享失败", null)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "分享文件异常: ${e.message}", e)
+                onComplete(false, e.message ?: "网络错误", null)
+            }
+        }
+    }
+    
+    /**
+     * 重命名文件
+     */
+    fun renameFile(fileId: Long, newName: String, onComplete: (Boolean, String) -> Unit) {
+        Log.d(TAG, "开始重命名文件: fileId=$fileId, newName=$newName")
+        
+        viewModelScope.launch {
+            try {
+                val response = dataSource.renameFile(fileId, newName)
+                if (response.code == 1) {
+                    Log.d(TAG, "重命名文件成功")
+                    // 重命名成功后刷新当前列表
+                    loadData()
+                    onComplete(true, "重命名成功")
+                } else {
+                    Log.e(TAG, "重命名文件失败: ${response.message}")
+                    onComplete(false, response.message ?: "重命名失败")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "重命名文件异常: ${e.message}", e)
+                onComplete(false, e.message ?: "网络错误")
+            }
+        }
+    }
+    
+    /**
+     * 获取文件详情
+     */
+    fun getFileDetails(fileIds: List<Long>, onComplete: (Boolean, String, FileDetail?) -> Unit) {
+        Log.d(TAG, "开始获取文件详情: $fileIds")
+        
+        if (fileIds.isEmpty()) {
+            Log.e(TAG, "文件ID列表为空")
+            onComplete(false, "未选择文件", null)
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                // 直接传递整个文件ID列表，支持查看多个文件详情
+                val response = dataSource.getFileDetails(fileIds)
+                if (response.code == 1 && response.data != null) {
+                    Log.d(TAG, "获取文件详情成功: ${response.data}")
+                    onComplete(true, "获取详情成功", response.data)
+                } else {
+                    Log.e(TAG, "获取文件详情失败: ${response.message}")
+                    onComplete(false, response.message ?: "获取详情失败", null)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "获取文件详情异常: ${e.message}", e)
+                onComplete(false, e.message ?: "网络错误", null)
+            }
+        }
     }
     
     /**

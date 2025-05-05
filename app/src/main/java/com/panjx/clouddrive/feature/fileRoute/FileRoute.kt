@@ -4,6 +4,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -12,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -21,6 +25,7 @@ import com.panjx.clouddrive.feature.fileRoute.component.FileScreen
 import com.panjx.clouddrive.feature.fileRoute.component.ShareOptionsDialog
 import com.panjx.clouddrive.feature.fileRoute.component.ShareResultDialog
 import com.panjx.clouddrive.feature.transfersRoute.DownloadTransfersViewModel
+import kotlinx.coroutines.launch
 
 /**
  * 文件路由主入口
@@ -41,6 +46,17 @@ fun FileRoute(
     val selectedFiles = remember { mutableStateListOf<Long>() }
     val downloadViewModel: DownloadTransfersViewModel = hiltViewModel()
     val context = LocalContext.current
+    
+    // 添加消息显示功能
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    
+    // 显示消息的帮助函数
+    fun showMessage(message: String) {
+        scope.launch {
+            snackbarHostState.showSnackbar(message)
+        }
+    }
     
     // 添加选择模式状态
     val isSelectionMode = remember { mutableStateOf(false) }
@@ -95,7 +111,8 @@ fun FileRoute(
             viewModel = viewModel,
             downloadViewModel = downloadViewModel,
             context = context,
-            exitSelectionMode = exitSelectionMode
+            exitSelectionMode = exitSelectionMode,
+            showMessage = { message -> showMessage(message) }  // 传递消息显示函数
         )
     }
 
@@ -121,6 +138,8 @@ fun FileRoute(
                         newFileName.value = currentName
                         showRenameDialog.value = true
                     }
+                } else if (selectedFileIds.size > 1) {
+                    showMessage("请选择单个文件进行重命名")
                 }
             },
             onDeleteClick = { fileOperations.deleteFiles(selectedFileIds) },
@@ -209,7 +228,17 @@ fun FileRoute(
         onShowFileDetailDialogChange = { showFileDetailDialog.value = it },
         fileDetail = fileDetail.value,
         isLoadingFileDetail = isLoadingFileDetail.value,
-        fileDetailErrorMessage = fileDetailErrorMessage.value
+        fileDetailErrorMessage = fileDetailErrorMessage.value,
+        // 传递Snackbar状态和自定义Snackbar
+        snackbarHostState = snackbarHostState,
+        customSnackbar = { snackbarData -> 
+            Snackbar(
+                snackbarData = snackbarData,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                actionColor = MaterialTheme.colorScheme.primary
+            )
+        }
     )
     
     // 分享选项对话框
@@ -230,7 +259,7 @@ fun FileRoute(
                         showShareResultDialog.value = true
                     } else {
                         // 显示错误提示
-                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        showMessage(message)
                         clearSelection()
                     }
                 }

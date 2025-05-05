@@ -40,7 +40,8 @@ fun RenameDialog(
                     onValueChange = onFileNameChange,
                     label = { Text("文件名") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    maxLines = 3, // 允许最多显示3行
+                    singleLine = false // 允许多行输入
                 )
             }
         },

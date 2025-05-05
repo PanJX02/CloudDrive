@@ -69,8 +69,8 @@ class FavoritesOperations(
      * 移动文件
      */
     fun moveFiles(selectedFileIds: List<Long>) {
-        Log.d(TAG, "移动操作: $selectedFileIds")
-        // TODO: 实现移动文件逻辑
+        Log.d(TAG, "移动操作被禁用: $selectedFileIds")
+        // 在收藏夹中不支持移动操作，仅退出选择模式
         exitSelectionMode()
     }
     
@@ -78,8 +78,8 @@ class FavoritesOperations(
      * 复制文件
      */
     fun copyFiles(selectedFileIds: List<Long>) {
-        Log.d(TAG, "复制操作: $selectedFileIds")
-        // TODO: 实现复制文件逻辑
+        Log.d(TAG, "复制操作被禁用: $selectedFileIds")
+        // 在收藏夹中不支持复制操作，仅退出选择模式
         exitSelectionMode()
     }
     
@@ -146,10 +146,14 @@ class FavoritesOperations(
         if (!newName.isNullOrBlank() && newName != currentFileName) {
             Log.d(TAG, "执行重命名操作: fileId=$fileId, 原名称=$currentFileName, 新名称=$newName")
             
-            // TODO: 实现重命名API调用
-            
-            // 重命名成功后退出选择模式
-            exitSelectionMode()
+            viewModel.renameFile(fileId, newName) { success, message ->
+                Log.d(TAG, "重命名文件结果: 成功=$success, 消息=$message")
+                
+                if (success) {
+                    exitSelectionMode() // 重命名成功后退出选择模式
+                }
+                // 错误处理(如显示Toast)应由调用方处理
+            }
         }
         
         // 返回当前文件ID和文件名，用于构建重命名对话框
@@ -157,17 +161,18 @@ class FavoritesOperations(
     }
     
     /**
-     * 删除文件/文件夹
+     * 从收藏夹移除文件（不是真正删除文件）
+     * 在收藏夹中，删除操作实际上是移出收藏
      */
     fun deleteFiles(selectedFileIds: List<Long>) {
-        Log.d(TAG, "删除操作: $selectedFileIds")
+        Log.d(TAG, "从收藏夹移除操作: $selectedFileIds")
         
         if (selectedFileIds.isEmpty()) {
-            Log.d(TAG, "无选中文件，取消删除操作")
+            Log.d(TAG, "无选中文件，取消移除操作")
             return
         }
         
-        Log.d(TAG, "开始删除文件，数量: ${selectedFileIds.size}")
+        Log.d(TAG, "开始从收藏夹移除文件，数量: ${selectedFileIds.size}")
         
         // 对于收藏夹，删除操作实际上是移出收藏
         viewModel.removeFromFavorites(selectedFileIds) { success, message ->
@@ -220,7 +225,16 @@ class FavoritesOperations(
         
         Log.d(TAG, "开始获取文件详情，fileId: ${selectedFileIds[0]}")
         
-        // TODO: 实现获取文件详情API调用
+        // 调用ViewModel获取文件详情
+        viewModel.getFileDetails(selectedFileIds) { success, message, fileDetail ->
+            if (success) {
+                Log.d(TAG, "获取文件详情成功: $message")
+                Log.d(TAG, "文件详情: $fileDetail")
+            } else {
+                Log.e(TAG, "获取文件详情失败: $message")
+                // 可以添加错误提示逻辑
+            }
+        }
         
         // 不清空选中，让用户可以继续操作
     }
