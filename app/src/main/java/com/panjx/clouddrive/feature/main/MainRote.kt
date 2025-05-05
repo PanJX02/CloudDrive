@@ -56,7 +56,9 @@ import com.panjx.clouddrive.feature.fileRoute.FileRoute
 import com.panjx.clouddrive.feature.fileRoute.FileViewModel
 import com.panjx.clouddrive.feature.fileRoute.ShareFileState
 import com.panjx.clouddrive.feature.fileRoute.component.FileActionBar
+import com.panjx.clouddrive.feature.fileRoute.navigation.navigateToSearchFile
 import com.panjx.clouddrive.feature.fileRoute.navigation.navigateToShareFileList
+import com.panjx.clouddrive.feature.fileRoute.navigation.searchFileScreen
 import com.panjx.clouddrive.feature.fileRoute.navigation.shareFileListScreen
 import com.panjx.clouddrive.feature.meRoute.MeRoute
 import com.panjx.clouddrive.feature.profile.ProfileRoute
@@ -196,7 +198,11 @@ fun MainScreen(
                             onNavigateToShareFileList = { shareKey, shareCode ->
                                 navController.navigateToShareFileList(shareKey, shareCode)
                             },
-                            extraBottomSpace = extraBottomSpaceHeight // 传递计算出的额外空间高度
+                            extraBottomSpace = extraBottomSpaceHeight, // 传递计算出的额外空间高度
+                            toSearch = {
+                                // 添加搜索路由导航
+                                navController.navigateToSearchFile()
+                            }
                         )
                     }
                     composable(Screen.Transfers.route) { TransfersRoute() }
@@ -224,7 +230,6 @@ fun MainScreen(
                     }
                     composable(Screen.Settings.route) {
                         SettingsRoute(
-                            userPreferences = userPreferences,
                             onLogout = onNavigateToLogin,
                             onNavigateToAbout = {
                                 navController.navigate(Screen.About.route)
@@ -276,6 +281,21 @@ fun MainScreen(
                             }
                         )
                     }
+                    // 添加搜索页面路由
+                    searchFileScreen(
+                        onBackClick = {
+                            navController.popBackStack()
+                        }
+                    )
+                    
+                    // 分享文件列表路由
+                    shareFileListScreen(
+                        navController = navController,
+                        onBackClick = {
+                            navController.popBackStack()
+                        }
+                    )
+                    
                     // 文件夹选择页面路由 - 用于复制或移动文件
                     folderSelectionScreen(
                         onBackClick = { navController.popBackStack() },
@@ -410,12 +430,6 @@ fun MainScreen(
                                 }
                             }
                         }
-                    )
-                    
-                    // 分享文件列表页面路由
-                    shareFileListScreen(
-                        navController = navController,
-                        onBackClick = { navController.popBackStack() }
                     )
                 }
             }

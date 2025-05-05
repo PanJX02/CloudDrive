@@ -23,6 +23,7 @@ import com.panjx.clouddrive.core.modle.response.NetworkResponse
 import com.panjx.clouddrive.core.modle.response.ShareListResponse
 import com.panjx.clouddrive.core.modle.response.ShareResponse
 import com.panjx.clouddrive.core.modle.response.UploadResponse
+import com.panjx.clouddrive.core.modle.response.UserInfoResponse
 import com.panjx.clouddrive.core.network.di.NetworkModule
 import com.panjx.clouddrive.core.network.retrofit.MyNetworkApiService
 import com.panjx.clouddrive.data.UserPreferences
@@ -274,4 +275,15 @@ class MyRetrofitDatasource @Inject constructor(
         return getService().clearRecycleBin()
     }
 
+    // 获取用户信息
+    suspend fun getUserInfo(): NetworkResponse<UserInfoResponse> {
+        Log.d("MyRetrofitDatasource", "获取用户信息")
+        return getService().getUserInfo()
+    }
+
+    // 搜索文件
+    suspend fun searchFiles(keyword: String, folderId: Long? = null): NetworkResponse<NetworkPageData<File>> {
+        Log.d("MyRetrofitDatasource", "搜索文件: keyword=$keyword, folderId=$folderId")
+        return getService().searchFiles(keyword, folderId)
+    }
 }

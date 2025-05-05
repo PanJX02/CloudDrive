@@ -39,7 +39,9 @@ fun FileRoute(
     onDispose: () -> Unit,
     // 导航到分享文件列表
     onNavigateToShareFileList: ((shareKey: String, shareCode: String) -> Unit)? = null,
-    extraBottomSpace: Dp = 0.dp
+    extraBottomSpace: Dp = 0.dp,
+    // 导航到搜索页面
+    toSearch: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currentPath by viewModel.currentPath.collectAsState()
@@ -214,6 +216,7 @@ fun FileRoute(
         exitSelectionMode = exitSelectionMode, // 传递退出选择模式函数
         isSelectionMode = isSelectionMode.value, // 传递选择模式状态
         extraBottomSpace = extraBottomSpace, // 传递额外底部空间
+        toSearch = toSearch, // 添加搜索导航函数
         // 传递导航到分享文件列表的函数
         onNavigateToShareFileList = onNavigateToShareFileList,
         // 传递重命名对话框状态

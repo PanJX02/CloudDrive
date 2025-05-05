@@ -72,49 +72,14 @@ fun FileTopBar(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Search,
-                    contentDescription = "Search",
+                    contentDescription = "搜索",
                     modifier = Modifier
-                        .padding(start = 8.dp)
+                        .padding(start = 8.dp, end = 16.dp)
                         .clickable {
                             toSearch()
                         }
                 )
             }
-        }/*,
-        // 更多功能菜单
-        actions = {
-            // 使用 Box 容器，填充整个 actions 区域，并设置内容居中
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight(), // 占满父容器全部空间
-                contentAlignment = Alignment.Center // 内容居中
-            ) {
-                IconButton(
-                    onClick = { showMenu = true },
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "更多"
-                    )
-                }
-            }
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = { showMenu = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("新建文件夹") },
-                    onClick = { *//* 处理新建文件夹 *//* }
-                )
-                DropdownMenuItem(
-                    text = { Text("排序") },
-                    onClick = { *//* 处理排序 *//* }
-                )
-                DropdownMenuItem(
-                    text = { Text("设置") },
-                    onClick = { *//* 跳转到设置页 *//* }
-                )
-            }
-        }*/
+        }
     )
 }

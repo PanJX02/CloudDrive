@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.panjx.clouddrive.core.modle.File
 import com.panjx.clouddrive.core.network.datasource.MyRetrofitDatasource
 import com.panjx.clouddrive.data.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -418,6 +419,37 @@ class FileOperationViewModel(application: Application) : AndroidViewModel(applic
                 e.printStackTrace()
                 _operationState.value = FileOperationState.Error(e.message ?: "未知错误")
                 onComplete(false, "保存分享文件发生异常: ${e.message}")
+            }
+        }
+    }
+
+    // 搜索文件
+    fun searchFiles(keyword: String, onComplete: (Boolean, String, List<File>?) -> Unit) {
+        if (keyword.isBlank()) {
+            onComplete(false, "搜索关键词不能为空", null)
+            return
+        }
+        
+        _operationState.value = FileOperationState.Loading
+        
+        viewModelScope.launch {
+            try {
+                Log.d("FileOperationViewModel", "开始搜索文件: keyword=$keyword")
+                
+                // 调用API执行搜索
+                val response = networkDataSource.searchFiles(keyword)
+                if (response.code == 1 && response.data != null) {
+                    val files = response.data.list ?: emptyList()
+                    _operationState.value = FileOperationState.Success("搜索成功")
+                    onComplete(true, "搜索成功", files)
+                } else {
+                    _operationState.value = FileOperationState.Error(response.message ?: "搜索失败")
+                    onComplete(false, response.message ?: "搜索失败", null)
+                }
+            } catch (e: Exception) {
+                Log.e("FileOperationViewModel", "搜索文件失败: ${e.message}")
+                _operationState.value = FileOperationState.Error(e.message ?: "未知错误")
+                onComplete(false, e.message ?: "未知错误", null)
             }
         }
     }

@@ -20,6 +20,7 @@ import com.panjx.clouddrive.core.modle.response.NetworkResponse
 import com.panjx.clouddrive.core.modle.response.ShareListResponse
 import com.panjx.clouddrive.core.modle.response.ShareResponse
 import com.panjx.clouddrive.core.modle.response.UploadResponse
+import com.panjx.clouddrive.core.modle.response.UserInfoResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -207,4 +208,16 @@ interface MyNetworkApiService {
     @POST("recycle-bin/clear")
     suspend fun clearRecycleBin(
     ): NetworkResponse<Unit>
+
+    // 获取用户信息
+    @GET("users/current")
+    suspend fun getUserInfo(
+    ): NetworkResponse<UserInfoResponse>
+
+    // 文件搜索
+    @GET("files/search")
+    suspend fun searchFiles(
+        @Query("keyword") keyword: String,
+        @Query("folderId") folderId: Long? = null
+    ): NetworkResponse<NetworkPageData<File>>
 }

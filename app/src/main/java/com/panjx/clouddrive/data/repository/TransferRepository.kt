@@ -134,6 +134,13 @@ class TransferRepository @Inject constructor(
     }
     
     /**
+     * 删除所有传输记录
+     */
+    suspend fun deleteAllTransfers() {
+        transferDao.deleteAllTransfers()
+    }
+    
+    /**
      * 直接通过ID获取传输记录（不通过Flow）
      * 用于解决Flow更新延迟问题
      */

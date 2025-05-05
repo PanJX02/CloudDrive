@@ -30,35 +30,33 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.panjx.clouddrive.MainActivity
-import com.panjx.clouddrive.core.config.Config
 import com.panjx.clouddrive.data.UserPreferences
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsRoute(
-    userPreferences: UserPreferences,
     onLogout: () -> Unit,
     onNavigateToAbout: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val currentEndpoint = userPreferences.endpoint.collectAsState(initial = UserPreferences.DEFAULT_ENDPOINT)
-    var showEndpointDialog by remember { mutableStateOf(false) }
-    var showRestartDialog by remember { mutableStateOf(false) }
-    var selectedEndpoint by remember { mutableStateOf("") }
+    
+    // 从ViewModel获取状态
+    val currentEndpoint by viewModel.currentEndpoint.collectAsState()
+    val showEndpointDialog by viewModel.showEndpointDialog.collectAsState()
+    val showRestartDialog by viewModel.showRestartDialog.collectAsState()
+    val selectedEndpoint by viewModel.selectedEndpoint.collectAsState()
     
     // 获取当前服务器的友好名称
-    val currentEndpointName = UserPreferences.getEndpointName(currentEndpoint.value)
+    val currentEndpointName = UserPreferences.getEndpointName(currentEndpoint)
     
     Scaffold(
         topBar = {
@@ -86,7 +84,7 @@ fun SettingsRoute(
                 trailingContent = { 
                     Icon(Icons.Default.ChevronRight, contentDescription = "选择")
                 },
-                modifier = Modifier.clickable { showEndpointDialog = true }
+                modifier = Modifier.clickable { viewModel.setShowEndpointDialog(true) }
             )
             
             ListItem(
@@ -98,7 +96,7 @@ fun SettingsRoute(
                 trailingContent = { 
                     Icon(Icons.Default.ChevronRight, contentDescription = "进入")
                 },
-                modifier = Modifier.clickable { /* 清理缓存逻辑 */ }
+                modifier = Modifier.clickable { viewModel.clearCache() }
             )
             
             ListItem(
@@ -117,10 +115,8 @@ fun SettingsRoute(
             
             Button(
                 onClick = {
-                    scope.launch {
-                        userPreferences.clearLoginState()
-                        onLogout()
-                    }
+                    viewModel.logout()
+                    onLogout()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,7 +128,7 @@ fun SettingsRoute(
         
         if (showEndpointDialog) {
             AlertDialog(
-                onDismissRequest = { showEndpointDialog = false },
+                onDismissRequest = { viewModel.setShowEndpointDialog(false) },
                 title = { Text("选择服务器地址") },
                 text = {
                     Column {
@@ -141,36 +137,14 @@ fun SettingsRoute(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        if (url != currentEndpoint.value) {
-                                            // 立即保存选择的端点
-                                            scope.launch {
-                                                userPreferences.setEndpoint(url)
-                                                Config.updateEndpoint(url)
-                                            }
-                                            selectedEndpoint = url
-                                            showEndpointDialog = false
-                                            showRestartDialog = true
-                                        } else {
-                                            showEndpointDialog = false
-                                        }
+                                        viewModel.changeEndpoint(url)
                                     }
                                     .padding(vertical = 12.dp)
                             ) {
                                 RadioButton(
-                                    selected = url == currentEndpoint.value,
+                                    selected = url == currentEndpoint,
                                     onClick = {
-                                        if (url != currentEndpoint.value) {
-                                            // 立即保存选择的端点
-                                            scope.launch {
-                                                userPreferences.setEndpoint(url)
-                                                Config.updateEndpoint(url)
-                                            }
-                                            selectedEndpoint = url
-                                            showEndpointDialog = false
-                                            showRestartDialog = true
-                                        } else {
-                                            showEndpointDialog = false
-                                        }
+                                        viewModel.changeEndpoint(url)
                                     }
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -180,7 +154,7 @@ fun SettingsRoute(
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showEndpointDialog = false }) {
+                    TextButton(onClick = { viewModel.setShowEndpointDialog(false) }) {
                         Text("取消")
                     }
                 }
@@ -189,13 +163,13 @@ fun SettingsRoute(
         
         if (showRestartDialog) {
             AlertDialog(
-                onDismissRequest = { showRestartDialog = false },
+                onDismissRequest = { viewModel.setShowRestartDialog(false) },
                 title = { Text("更换服务器地址") },
                 text = { Text("服务器地址已更改，重启应用后生效。是否立即重启？") },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            // 直接重启应用，不需要再保存端点
+                            // 直接重启应用
                             val intent = Intent(context, MainActivity::class.java)
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                             context.startActivity(intent)
@@ -207,7 +181,7 @@ fun SettingsRoute(
                 },
                 dismissButton = {
                     TextButton(
-                        onClick = { showRestartDialog = false }
+                        onClick = { viewModel.setShowRestartDialog(false) }
                     ) {
                         Text("稍后手动重启")
                     }

@@ -239,4 +239,26 @@ class FileViewModel(application: Application): AndroidViewModel(application) {
             onComplete(success, message)
         }
     }
+
+    /**
+     * 根据关键词搜索文件
+     */
+    fun searchFiles(keyword: String, onComplete: (List<File>) -> Unit) {
+        if (keyword.isBlank()) {
+            onComplete(emptyList())
+            return
+        }
+        
+        Log.d("FileViewModel", "searchFiles: 搜索关键词 $keyword")
+        
+        operationViewModel.searchFiles(keyword) { success, message, files ->
+            if (success && files != null) {
+                Log.d("FileViewModel", "searchFiles: 搜索成功，找到 ${files.size} 个文件")
+                onComplete(files)
+            } else {
+                Log.e("FileViewModel", "searchFiles: 搜索失败 $message")
+                onComplete(emptyList())
+            }
+        }
+    }
 }
