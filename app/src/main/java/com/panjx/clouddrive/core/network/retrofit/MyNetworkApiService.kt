@@ -6,12 +6,14 @@ import com.panjx.clouddrive.core.modle.request.CopyFilesRequest
 import com.panjx.clouddrive.core.modle.request.CreateFolderRequest
 import com.panjx.clouddrive.core.modle.request.DownloadRequest
 import com.panjx.clouddrive.core.modle.request.MoveFilesRequest
+import com.panjx.clouddrive.core.modle.request.PasswordRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
 import com.panjx.clouddrive.core.modle.request.RenameFileRequest
 import com.panjx.clouddrive.core.modle.request.SaveShareFilesRequest
 import com.panjx.clouddrive.core.modle.request.ShareRequest
 import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
+import com.panjx.clouddrive.core.modle.request.UserInfoRequest
 import com.panjx.clouddrive.core.modle.response.Announcement
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
@@ -25,6 +27,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -220,4 +223,16 @@ interface MyNetworkApiService {
         @Query("keyword") keyword: String,
         @Query("folderId") folderId: Long? = null
     ): NetworkResponse<NetworkPageData<File>>
+
+    // 修改用户信息
+    @PUT("users/current")
+    suspend fun updateUserInfo(
+        @Body request: UserInfoRequest
+    ): NetworkResponse<Unit>
+
+    // 修改密码
+    @PUT("users/password")
+    suspend fun updatePassword(
+       @Body request: PasswordRequest
+    ): NetworkResponse<Unit>
 }

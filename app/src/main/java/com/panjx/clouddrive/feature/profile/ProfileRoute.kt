@@ -37,6 +37,7 @@ import com.panjx.clouddrive.core.util.formatTimestamp
 @Composable
 fun ProfileRoute(
     onNavigateBack: () -> Unit,
+    onNavigateToEditProfile: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val userState by viewModel.userState.collectAsStateWithLifecycle()
@@ -55,7 +56,7 @@ fun ProfileRoute(
                     IconButton(onClick = { viewModel.loadUserInfo() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "刷新")
                     }
-                    IconButton(onClick = { /* TODO: 编辑个人资料 */ }) {
+                    IconButton(onClick = { onNavigateToEditProfile() }) {
                         Icon(Icons.Default.Edit, contentDescription = "编辑")
                     }
                 }

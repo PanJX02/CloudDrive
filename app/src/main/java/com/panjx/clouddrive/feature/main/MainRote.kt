@@ -61,7 +61,9 @@ import com.panjx.clouddrive.feature.fileRoute.navigation.navigateToShareFileList
 import com.panjx.clouddrive.feature.fileRoute.navigation.searchFileScreen
 import com.panjx.clouddrive.feature.fileRoute.navigation.shareFileListScreen
 import com.panjx.clouddrive.feature.meRoute.MeRoute
+import com.panjx.clouddrive.feature.profile.EDIT_PROFILE_ROUTE
 import com.panjx.clouddrive.feature.profile.ProfileRoute
+import com.panjx.clouddrive.feature.profile.editProfileScreen
 import com.panjx.clouddrive.feature.recycleBin.RecycleBinRoute
 import com.panjx.clouddrive.feature.settings.SettingsRoute
 import com.panjx.clouddrive.feature.shared.SharedRoute
@@ -271,6 +273,9 @@ fun MainScreen(
                         ProfileRoute(
                             onNavigateBack = {
                                 navController.popBackStack()
+                            },
+                            onNavigateToEditProfile = {
+                                navController.navigate(EDIT_PROFILE_ROUTE)
                             }
                         )
                     }
@@ -429,6 +434,13 @@ fun MainScreen(
                                     }
                                 }
                             }
+                        }
+                    )
+                    
+                    // 编辑个人资料页面
+                    editProfileScreen(
+                        onBackClick = {
+                            navController.popBackStack()
                         }
                     )
                 }

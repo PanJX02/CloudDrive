@@ -89,4 +89,45 @@ class ProfileViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * 更新用户信息
+     */
+    suspend fun updateUserInfo(nickname: String, email: String, avatar: String): Boolean {
+        return try {
+            val response = datasource.updateUserInfo(nickname, email, avatar)
+            if (response.code == 1) {
+                // 更新成功后刷新用户信息
+                loadUserInfo()
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * 修改密码
+     * 返回成功或具体错误信息
+     */
+    suspend fun updatePassword(oldPassword: String, newPassword: String): Pair<Boolean, String?> {
+        return try {
+            if (oldPassword == newPassword) {
+                return Pair(false, "新密码不能与原密码相同")
+            }
+            
+            val response = datasource.updatePassword(oldPassword, newPassword)
+            if (response.code == 1) {
+                Pair(true, null) // 成功
+            } else if (response.message?.contains("原密码") == true || response.message?.contains("旧密码") == true) {
+                Pair(false, "原密码不正确")
+            } else {
+                Pair(false, response.message) // 其他错误
+            }
+        } catch (e: Exception) {
+            Pair(false, e.message ?: "未知错误")
+        }
+    }
 } 

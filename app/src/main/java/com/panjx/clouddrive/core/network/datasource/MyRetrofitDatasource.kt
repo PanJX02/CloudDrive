@@ -9,12 +9,14 @@ import com.panjx.clouddrive.core.modle.request.CopyFilesRequest
 import com.panjx.clouddrive.core.modle.request.CreateFolderRequest
 import com.panjx.clouddrive.core.modle.request.DownloadRequest
 import com.panjx.clouddrive.core.modle.request.MoveFilesRequest
+import com.panjx.clouddrive.core.modle.request.PasswordRequest
 import com.panjx.clouddrive.core.modle.request.RefreshTokenRequest
 import com.panjx.clouddrive.core.modle.request.RenameFileRequest
 import com.panjx.clouddrive.core.modle.request.SaveShareFilesRequest
 import com.panjx.clouddrive.core.modle.request.ShareRequest
 import com.panjx.clouddrive.core.modle.request.User
 import com.panjx.clouddrive.core.modle.request.UserFileIdsRequest
+import com.panjx.clouddrive.core.modle.request.UserInfoRequest
 import com.panjx.clouddrive.core.modle.response.Announcement
 import com.panjx.clouddrive.core.modle.response.DownloadResponse
 import com.panjx.clouddrive.core.modle.response.LoginData
@@ -285,5 +287,17 @@ class MyRetrofitDatasource @Inject constructor(
     suspend fun searchFiles(keyword: String, folderId: Long? = null): NetworkResponse<NetworkPageData<File>> {
         Log.d("MyRetrofitDatasource", "搜索文件: keyword=$keyword, folderId=$folderId")
         return getService().searchFiles(keyword, folderId)
+    }
+
+    // 修改用户信息
+    suspend fun updateUserInfo(nickname: String, email: String, avatar: String): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "修改用户信息: nickname=$nickname, email=$email, avatar=$avatar")
+        return getService().updateUserInfo(UserInfoRequest(nickname, email, avatar))
+    }
+
+    // 修改密码
+    suspend fun updatePassword(oldPassword: String, newPassword: String): NetworkResponse<Unit> {
+        Log.d("MyRetrofitDatasource", "修改密码: oldPassword=$oldPassword, newPassword=$newPassword")
+        return getService().updatePassword(PasswordRequest(oldPassword, newPassword))
     }
 }
