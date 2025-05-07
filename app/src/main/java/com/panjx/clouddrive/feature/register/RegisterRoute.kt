@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +37,7 @@ fun RegisterRoute(
     val username by viewModel.username.collectAsState()
     val password by viewModel.password.collectAsState()
     val confirmPassword by viewModel.confirmPassword.collectAsState()
+    val inviteCode by viewModel.inviteCode.collectAsState()
 
     LaunchedEffect(registerState) {
         if (registerState is RegisterState.Success) {
@@ -45,9 +49,11 @@ fun RegisterRoute(
         username = username,
         password = password,
         confirmPassword = confirmPassword,
+        inviteCode = inviteCode,
         onUsernameChange = viewModel::onUsernameChange,
         onPasswordChange = viewModel::onPasswordChange,
         onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
+        onInviteCodeChange = viewModel::onInviteCodeChange,
         onRegisterClick = viewModel::register,
         onLoginClick = toLogin,
         registerState = registerState
@@ -59,14 +65,17 @@ fun RegisterScreen(
     username: String,
     password: String,
     confirmPassword: String,
+    inviteCode: String,
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
+    onInviteCodeChange: (String) -> Unit,
     onRegisterClick: () -> Unit,
     onLoginClick: () -> Unit,
     registerState: RegisterState
 ) {
     val errorMessage = if (registerState is RegisterState.Error) (registerState as RegisterState.Error).message else null
+    val scrollState = rememberScrollState()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -75,6 +84,8 @@ fun RegisterScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -134,6 +145,26 @@ fun RegisterScreen(
                 label = { Text("确认密码") },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+            
+            // 邀请码输入
+            OutlinedTextField(
+                value = inviteCode,
+                onValueChange = onInviteCodeChange,
+                label = { Text("邀请码") },
+                singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,

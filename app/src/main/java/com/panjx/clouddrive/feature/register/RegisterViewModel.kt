@@ -25,6 +25,9 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
     private val _confirmPassword = MutableStateFlow("")
     val confirmPassword: StateFlow<String> = _confirmPassword
 
+    private val _inviteCode = MutableStateFlow("")
+    val inviteCode: StateFlow<String> = _inviteCode
+
     fun onUsernameChange(newUsername: String) {
         _username.value = newUsername
     }
@@ -37,12 +40,16 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
         _confirmPassword.value = newConfirmPassword
     }
 
+    fun onInviteCodeChange(newInviteCode: String) {
+        _inviteCode.value = newInviteCode
+    }
+
     fun register() {
         viewModelScope.launch {
             try {
                 // 验证所有必填字段
                 if (_username.value.isBlank() || _password.value.isBlank() || 
-                    _confirmPassword.value.isBlank()) {
+                    _confirmPassword.value.isBlank() || _inviteCode.value.isBlank()) {
                     _registerState.value = RegisterState.Error("所有字段都必须填写")
                     return@launch
                 }
@@ -66,7 +73,7 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
                 }
 
                 // 调用API注册用户
-                val response = dataSource.register(_username.value, _password.value)
+                val response = dataSource.register(_username.value, _password.value, _inviteCode.value)
                 if (response.code == 1) {
                     response.data?.let { loginData ->
                         userPreferences.setLoggedIn(

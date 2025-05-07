@@ -88,10 +88,10 @@ class MyRetrofitDatasource @Inject constructor(
 
     
     suspend fun register(
-        username: String, password: String
+        username: String, password: String, inviteCode: String? = null
     ): NetworkResponse<LoginData> {
-        Log.d("MyRetrofitDatasource", "注册: username=$username")
-        return getService().register(User(username, password))
+        Log.d("MyRetrofitDatasource", "注册: username=$username, inviteCode=$inviteCode")
+        return getService().register(User(username, password, inviteCode))
     }
     
     // 刷新token
